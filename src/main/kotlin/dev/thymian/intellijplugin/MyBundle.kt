@@ -1,4 +1,4 @@
-package com.github.atennert.intellijplugin
+package dev.thymian.intellijplugin
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

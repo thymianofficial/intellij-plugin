@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
+    alias(libs.plugins.serialization)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -31,6 +32,8 @@ repositories {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
+    implementation(libs.kotlinxSerializationJson)
+
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
 

@@ -1,9 +1,9 @@
-package com.github.atennert.intellijplugin.services
+package dev.thymian.intellijplugin.services
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.github.atennert.intellijplugin.MyBundle
+import dev.thymian.intellijplugin.MyBundle
 
 @Service(Service.Level.PROJECT)
 class MyProjectService(project: Project) {

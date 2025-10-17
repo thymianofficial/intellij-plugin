@@ -1,15 +1,20 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.atennert.intellijplugin</id>
-    <name>intellij-plugin</name>
-    <vendor>atennert</vendor>
+    <id>dev.thymian.intellijplugin</id>
+    <name>Thymian</name>
+    <vendor>qupaya technologies GmbH</vendor>
+    <category>Microservices</category>
+
+    <description><![CDATA[
+        This is the plugin to run Thymian on your application's endpoints.
+    ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.atennert.intellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.atennert.intellijplugin.startup.MyProjectActivity" />
+        <toolWindow factoryClass="dev.thymian.intellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+        <postStartupActivity implementation="dev.thymian.intellijplugin.startup.MyProjectActivity" />
     </extensions>
 </idea-plugin>
