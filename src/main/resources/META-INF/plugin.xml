@@ -10,11 +10,16 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.swagger</depends>
+    <depends>com.intellij.modules.microservices</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow factoryClass="dev.thymian.intellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
         <postStartupActivity implementation="dev.thymian.intellijplugin.startup.MyProjectActivity" />
+
+        <microservices.endpointsSidePanelProvider
+            implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
     </extensions>
 </idea-plugin>
