@@ -1,25 +1,24 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>dev.thymian.intellijplugin</id>
-    <name>Thymian</name>
-    <vendor>qupaya technologies GmbH</vendor>
-    <category>Microservices</category>
+  <id>dev.thymian.intellijplugin</id>
+  <name>Thymian</name>
+  <vendor>qupaya technologies GmbH</vendor>
+  <category>Microservices</category>
 
-    <description><![CDATA[
-        This is the plugin to run Thymian on your application's endpoints.
-    ]]></description>
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.microservices</depends>
+  <depends>com.intellij.swagger</depends>
 
-    <depends>com.intellij.modules.platform</depends>
-    <depends>com.intellij.swagger</depends>
-    <depends>com.intellij.modules.microservices</depends>
+  <resource-bundle>messages.ThymianBundle</resource-bundle>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow factoryClass="dev.thymian.intellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+    <postStartupActivity implementation="dev.thymian.intellijplugin.startup.MyProjectActivity"/>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="dev.thymian.intellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="dev.thymian.intellijplugin.startup.MyProjectActivity" />
+    <microservices.endpointsSidePanelProvider
+        implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
 
-        <microservices.endpointsSidePanelProvider
-            implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
-    </extensions>
+    <!-- Run -->
+    <configurationType implementation="dev.thymian.intellijplugin.run.ThymianConfigurationType"/>
+  </extensions>
 </idea-plugin>

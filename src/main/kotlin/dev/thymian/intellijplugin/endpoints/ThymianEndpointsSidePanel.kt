@@ -1,6 +1,9 @@
 package dev.thymian.intellijplugin.endpoints
 
-import com.intellij.microservices.endpoints.*
+import com.intellij.microservices.endpoints.EndpointsElementItem
+import com.intellij.microservices.endpoints.EndpointsListItem
+import com.intellij.microservices.endpoints.EndpointsSidePanel
+import com.intellij.microservices.endpoints.EndpointsSidePanelProvider
 import com.intellij.microservices.oas.getOpenApiSpecification
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.diagnostic.thisLogger
@@ -13,16 +16,9 @@ class ThymianEndpointsSidePanel(val project: Project) : EndpointsSidePanel {
     override val title = "Thymian"
     override val component: JComponent = JLabel("Thymian Endpoints Side Panel")
 
-    init {
-        val providerCount = ReadAction.compute<Int, Throwable> {
-            EndpointsProvider.getAvailableProviders(project).count()
-        }
-        thisLogger().warn("availableProviders: $providerCount")
-    }
-
     override suspend fun isAvailable(selectedItems: List<EndpointsListItem>): Boolean {
         print("isAvailable", selectedItems)
-        return selectedItems.isNotEmpty() && selectedItems.any { it is EndpointsElementItem<*,*> }
+        return selectedItems.isNotEmpty() && selectedItems.any { it is EndpointsElementItem<*, *> }
     }
 
     override suspend fun update(selectedItems: List<EndpointsListItem>) {
@@ -31,6 +27,11 @@ class ThymianEndpointsSidePanel(val project: Project) : EndpointsSidePanel {
 
     override fun selected(selectedItems: List<EndpointsListItem>) {
         print("selected", selectedItems)
+        for (item in selectedItems) {
+            if (item !is EndpointsElementItem<*, *>) {
+                continue
+            }
+        }
     }
 
     private fun print(where: String, selectedItems: List<EndpointsListItem>) {
@@ -42,6 +43,6 @@ class ThymianEndpointsSidePanel(val project: Project) : EndpointsSidePanel {
     }
 
     class Provider : EndpointsSidePanelProvider {
-      override fun create(project: Project) = ThymianEndpointsSidePanel(project)
+        override fun create(project: Project) = ThymianEndpointsSidePanel(project)
     }
 }

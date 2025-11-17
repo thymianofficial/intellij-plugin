@@ -8,7 +8,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
-import dev.thymian.intellijplugin.MyBundle
+import dev.thymian.intellijplugin.ThymianBundle
 import dev.thymian.intellijplugin.services.MyProjectService
 import dev.thymian.intellijplugin.services.ThymianConnectorService
 import javax.swing.JButton
@@ -33,12 +33,12 @@ class MyToolWindowFactory : ToolWindowFactory {
         private val thymian = toolWindow.project.service<ThymianConnectorService>()
 
         fun getContent() = JBPanel<JBPanel<*>>().apply {
-            val label = JBLabel(MyBundle.message("randomLabel", "?"))
+            val label = JBLabel(ThymianBundle.message("randomLabel", "?"))
 
             add(label)
-            add(JButton(MyBundle.message("shuffle")).apply {
+            add(JButton(ThymianBundle.message("shuffle")).apply {
                 addActionListener {
-                    label.text = MyBundle.message("randomLabel", service.getRandomNumber())
+                    label.text = ThymianBundle.message("randomLabel", service.getRandomNumber())
                     println(thymian)
                 }
             })
