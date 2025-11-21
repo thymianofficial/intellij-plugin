@@ -1,113 +1,225 @@
 package dev.thymian.intellijplugin.models
 
-import com.qupaya.toggl.api.InstantSerializer
-import kotlinx.serialization.*
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
-@Serializable
-sealed interface Message {
-    val payload: Payload
-
-    @Serializable
-    @SerialName("event")
-    data class Event(override val payload: Payload.EventPayload) : Message
-
-    @Serializable
-    @SerialName("response")
-    data class Response(override val payload: Payload.ResponsePayload) : Message
-
-    @Serializable
-    @SerialName("error")
-    data class Error(override val payload: Payload.ErrorPayload) : Message
-}
+/* *****************************************
+ * Initialization
+ * *****************************************/
 
 @Serializable
-data class Init(val payload: InitPayload) {
+data class Register(
+    val name: String,
+    val onActions: List<String>,
+    val onEvents: List<String>,
+) {
     @OptIn(ExperimentalSerializationApi::class)
     @EncodeDefault
-    val type = "init"
+    val type = "register"
 }
 
-@OptIn(ExperimentalTime::class)
-sealed interface Payload {
-    val id: String
-    val name: String
-    val timestamp: Instant
-    val source: String
-
-    @OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
-    @Serializable(NameSerializer::class)
-    sealed interface EventPayload: Payload {
-        @Serializable
-        data class LoadFormatEvent(
-            override val name: String,
-            override val id: String,
-            @Contextual
-            @Serializable(with = InstantSerializer::class)
-            override val timestamp: Instant,
-            override val source: String
-        ) : EventPayload
-
-        @Serializable
-        data class CoreReadyEvent(
-            override val name: String,
-            override val id: String,
-            @Contextual
-            @Serializable(with = InstantSerializer::class)
-            override val timestamp: Instant,
-            override val source: String
-        ) : EventPayload
-    }
-
-    @OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
-    @Serializable(NameSerializer::class)
-    sealed interface ResponsePayload : Payload {
-        val correlationId: String
-    }
-
-    @OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
+@Serializable
+data class RegisterResponse(
+    val type: String,
+    val ok: Boolean,
+    val config: Configuration
+) {
     @Serializable
-    data class ErrorPayload(
-        override val id: String,
-        override val name: String,
-        val error: ThymianError,
-        @Contextual
-        @Serializable(with = InstantSerializer::class)
-        override val timestamp: Instant,
-        override val source: String,
-        val correlationId: String?
-    ) : Payload {
+    data class Configuration(
+        val feature: Boolean? = null,
+        val threshold: Int? = 0
+    )
+}
+
+@Serializable
+class Ready {
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault
+    val type: String = "ready"
+}
+
+/* *****************************************
+ * Sending
+ * *****************************************/
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@SerialName("emit")
+data class EmitEventMessage<T : Any>(
+    val name: String,
+    val payload: T,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonClassDiscriminator("name")
+sealed class EmitActionMessage {
+    @OptIn(ExperimentalUuidApi::class)
+    val id: String = Uuid.random().toString()
+
+    @EncodeDefault
+    val type = "emitAction"
+    open val options: Options? = null
+
+    /**
+     * Options for action execution.
+     *
+     * @param strategy The strategy to use for the action: "first", "collect", "deep-merge".
+     * @param timeout The timeout in milliseconds for waiting for replies.
+     */
+    @Serializable
+    data class Options(
+        val strategy: String? = "first",
+        val timeout: Int
+    )
+
+    @Serializable
+    @SerialName("openapi.transform")
+    data class OpenAPITransform(
+        val payload: Payload
+    ) : EmitActionMessage() {
+
         @Serializable
-        @JsonIgnoreUnknownKeys
-        data class ThymianError(
-            val name: String,
-            val message: String? = null,
-        )
+        class Payload(val content: String)
+    }
+
+    @Serializable
+    @SerialName("http-linter.lint-static")
+    data class HttpLinterLintStatic(
+        val payload: Payload
+    ) : EmitActionMessage() {
+
+        @Serializable
+        class Payload(val format: JsonElement)
     }
 }
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
-data class InitPayload(
+@SerialName("actionReply")
+data class EmitActionResultMessage<T : Any>(
+    val correlationId: String,
     val name: String,
-    val actions: Listeners,
-    val events: Listeners,
-) {
-    @Serializable
-    data class Listeners(val listensOn: List<String>)
-}
+    val payload: T,
+)
 
-object NameSerializer : JsonContentPolymorphicSerializer<Payload>(Payload::class) {
-    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<Payload> {
-        val json = element.jsonObject
-        val name = json.getValue("name").jsonPrimitive.content
-        return when (name) {
-            "core.ready" -> Payload.EventPayload.CoreReadyEvent.serializer()
-            "core.load-format" -> Payload.EventPayload.LoadFormatEvent.serializer()
-            else -> throw IllegalArgumentException("Unknown payload type: $name")
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@SerialName("actionError")
+data class EmitActionErrorMessage(
+    val correlationId: String,
+    val name: String,
+    val error: ErrorPayload,
+)
+
+/* *****************************************
+ * Receiving
+ * *****************************************/
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonClassDiscriminator("type")
+sealed interface Receiving {
+    @Serializable
+    @SerialName("event")
+    @JsonIgnoreUnknownKeys
+    data class EventMessage(
+        val name: String,
+    ) : Receiving
+
+    @Serializable
+    @SerialName("action")
+    @JsonIgnoreUnknownKeys
+    data class ActionMessage(
+        val id: String,
+        val name: String,
+    ) : Receiving
+
+
+    @Serializable
+    @SerialName("emitActionResult")
+    data class ActionResultMessageWrapper(
+        val correlationId: String,
+        val name: String,
+        val payload: JsonElement,
+    ) : Receiving {
+        fun toTypedMessage(): ActionResultMessage<*> = when (name) {
+            "openapi.transform" -> ActionResultMessage.OpenAPITransformResponse(
+                correlationId = correlationId,
+                name = name,
+                payload = payload
+            )
+
+            "http-linter.lint-static" -> ActionResultMessage.HttpLinterLintStaticResponse(
+                correlationId = correlationId,
+                name = name,
+                payload = Json.decodeFromJsonElement(payload)
+            )
+
+            else -> throw IllegalArgumentException("Unknown action result type: $name")
         }
     }
+
+    @Serializable
+    @SerialName("emitActionError")
+    data class ActionErrorMessage(
+        val correlationId: String,
+        val name: String,
+        val error: ErrorPayload,
+    ) : Receiving
 }
+
+
+sealed interface ActionResultMessage<T : Any> {
+    val correlationId: String
+    val name: String
+    val payload: T
+
+    @Serializable
+    data class OpenAPITransformResponse(
+        override val correlationId: String,
+        override val name: String,
+        override val payload: JsonElement,
+    ) : ActionResultMessage<JsonElement>
+
+    @Serializable
+    data class HttpLinterLintStaticResponse(
+        override val correlationId: String,
+        override val name: String,
+        override val payload: List<Payload>,
+    ) : ActionResultMessage<List<HttpLinterLintStaticResponse.Payload>> {
+        @Serializable
+        data class Payload(
+            val reports: List<ThymianReport>,
+            val valid: Boolean,
+        )
+
+        @OptIn(ExperimentalSerializationApi::class)
+        @Serializable
+        @JsonIgnoreUnknownKeys
+        data class ThymianReport(
+            val topic: String,
+            val subTopic: String? = null,
+            val title: String,
+            val text: String,
+            val isProblem: Boolean,
+        )
+    }
+}
+
+/* *****************************************
+ * Payloads
+ * *****************************************/
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class ErrorPayload(
+    val name: String? = null,
+    val message: String,
+)

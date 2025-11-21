@@ -11,13 +11,20 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.swagger.core.synthetic.generateOasDraft
+import com.intellij.util.application
+import dev.thymian.intellijplugin.cli.ActionListener
+import dev.thymian.intellijplugin.cli.ThymianConnectorService
+import dev.thymian.intellijplugin.models.ActionResultMessage
+import dev.thymian.intellijplugin.models.EmitActionMessage
+import dev.thymian.intellijplugin.models.Receiving
+import java.util.concurrent.CompletableFuture
 
-internal class ProjectFilter(project: Project) : SearchScopeEndpointsFilter {
+private class ProjectFilter(project: Project) : SearchScopeEndpointsFilter {
     override val contentSearchScope: GlobalSearchScope = GlobalSearchScope.allScope(project)
     override val transitiveSearchScope: GlobalSearchScope = GlobalSearchScope.allScope(project)
 }
 
-internal fun getModuleFilters(project: Project) = ModuleManager.getInstance(project).modules
+private fun getModuleFilters(project: Project) = ModuleManager.getInstance(project).modules
     .map { ModuleEndpointsFilter(it, false, false) }
 
 internal class ThymianRunProxy<G : Any, E : Any>(
@@ -28,7 +35,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     val smTestProxy = SMTestProxy(name, false, null)
 
     private lateinit var testData: List<DataContainer>
-    val hasTestData get() = testData.isNotEmpty()
+    val hasTestData by lazy { testData.isNotEmpty() }
 
     private val squashedSpecification: OpenApiSpecification by lazy {
         squashOpenApiSpecifications(testData.map { it.oas })
@@ -42,6 +49,8 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     }
 
     fun initialize() {
+        smTestProxy.addStdOutput("loading endpoints\n")
+
         val projectFilter = ProjectFilter(project)
 
         val endPointGroups = getModuleFilters(project)
@@ -56,6 +65,61 @@ internal class ThymianRunProxy<G : Any, E : Any>(
                         ?.let { DataContainer(group, endpoint, it) }
                 }
         }
+    }
+
+    fun runTest(): CompletableFuture<Unit> {
+        smTestProxy.addStdOutput("processing\n")
+
+        val connection = project.getService(ThymianConnectorService::class.java)
+        val result = CompletableFuture<Unit>()
+
+        fun handleError(errorMessage: Receiving.ActionErrorMessage) {
+            application.invokeLater {
+                result.complete(Unit)
+                smTestProxy.setFinished()
+                smTestProxy.setTestFailed(errorMessage.error.message, null, true)
+            }
+        }
+
+        fun handleLintingResult(lintResult: ActionResultMessage.HttpLinterLintStaticResponse) {
+            val report = lintResult.payload
+                .flatMap { it.reports }
+                .joinToString("\n") { "${it.title} (${it.topic})\n${it.text}" }
+            val isFailed = lintResult.payload.any { !it.valid }
+
+            application.invokeLater {
+                result.complete(Unit)
+                smTestProxy.addStdOutput(report)
+                smTestProxy.setFinished()
+                if (isFailed) {
+                    smTestProxy.setTestFailed("Linting failed", null, false)
+                }
+            }
+        }
+
+        fun handleTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
+            connection.sendAction(
+                EmitActionMessage.HttpLinterLintStatic(
+                    EmitActionMessage.HttpLinterLintStatic.Payload(transformResult.payload)
+                ),
+                ActionListener<ActionResultMessage.HttpLinterLintStaticResponse, _>(
+                    onResult = ::handleLintingResult,
+                    onError = ::handleError
+                )
+            )
+        }
+
+        connection.sendAction(
+            EmitActionMessage.OpenAPITransform(
+                EmitActionMessage.OpenAPITransform.Payload(oasDraft)
+            ),
+            ActionListener<ActionResultMessage.OpenAPITransformResponse, _>(
+                onResult = ::handleTransformResult,
+                onError = ::handleError
+            )
+        )
+
+        return result
     }
 
     inner class DataContainer(

@@ -9,8 +9,8 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
 import dev.thymian.intellijplugin.ThymianBundle
+import dev.thymian.intellijplugin.cli.ThymianConnectorService
 import dev.thymian.intellijplugin.services.MyProjectService
-import dev.thymian.intellijplugin.services.ThymianConnectorService
 import javax.swing.JButton
 
 class MyToolWindowFactory : ToolWindowFactory {

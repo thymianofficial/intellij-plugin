@@ -4,61 +4,40 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.openapi.application.ReadAction
 import com.intellij.util.application
+import java.util.concurrent.CompletableFuture
 
 internal class ThymianProcessHandler(
     private val rootNode: SMTestProxy.SMRootTestProxy,
     private val runProxies: Sequence<ThymianRunProxy<*, *>>
 ) : ProcessHandler() {
+    private fun prepare() = ReadAction.compute<List<ThymianRunProxy<*, *>>, Throwable> {
+        runProxies
+            .onEach { it.initialize() }
+            .filter { it.hasTestData }
+            .toList()
+            .also { validProxies ->
+                validProxies.map { it.smTestProxy }
+                    .forEach { rootNode.addChild(it) }
+            }
+    }
+
     override fun startNotify() {
         super.startNotify()
 
-        val testNodes = application.executeOnPooledThread<List<SMTestProxy>> {
+        application.executeOnPooledThread<Unit> {
             rootNode.setSuiteStarted()
 
-            ReadAction.compute<List<SMTestProxy>, Throwable> {
-                runProxies
-                    .onEach { it.initialize() }
-                    .filter { it.hasTestData }
-                    .map { it.smTestProxy }
-                    .onEach { rootNode.addChild(it) }
-                    .toList()
-            }
-        }.get()
+            val validRunProxies = prepare()
 
-        application.executeOnPooledThread {
-            ReadAction.run<Throwable> {
-                testNodes.forEach { testNode ->
-                    Thread.sleep(200)
+            validRunProxies
+                .fold(CompletableFuture<Unit>().completeAsync {}) { prev, runProxy ->
+                    prev.thenCompose { runProxy.runTest() }
+                }.thenRun {
                     application.invokeLater {
-                        testNode.addStdOutput("processing\n")
-                    }
-                    Thread.sleep(200)
-
-                    // Run the actual test off the EDT
-                    val success = true
-
-                    application.invokeLater {
-                        testNode.addStdOutput("done\n")
-                        if (!success) {
-                            testNode.setTestFailed(
-                                "Validation failed",
-                                /*stacktrace*/null,
-                                /*Failed or Errored*/false
-                            )
-                        }
-                        testNode.setFinished()
+                        rootNode.setFinished()
+                        notifyProcessTerminated(0)
                     }
                 }
-
-                // Mark the root/suite as finished and terminate the process
-                application.invokeLater {
-                    rootNode.setFinished()
-                }
-
-                application.invokeLater {
-                    notifyProcessTerminated(0)
-                }
-            }
         }
     }
 
