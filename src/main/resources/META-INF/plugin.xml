@@ -12,9 +12,6 @@
   <resource-bundle>messages.ThymianBundle</resource-bundle>
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindow factoryClass="dev.thymian.intellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-    <postStartupActivity implementation="dev.thymian.intellijplugin.startup.MyProjectActivity"/>
-
     <microservices.endpointsSidePanelProvider
         implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
 
