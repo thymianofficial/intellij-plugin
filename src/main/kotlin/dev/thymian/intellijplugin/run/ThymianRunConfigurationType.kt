@@ -6,13 +6,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NotNullLazyValue
 import dev.thymian.intellijplugin.ThymianIcons
 
-class ThymianConfigurationType : SimpleConfigurationType(
+class ThymianRunConfigurationType : SimpleConfigurationType(
     "ThymianConfigurationType",
     "Thymian",
     "Thymian command runner",
     NotNullLazyValue.createConstantValue(ThymianIcons.Action)
 ) {
     override fun createTemplateConfiguration(project: Project): RunConfiguration {
-        return ThymianConfiguration(project, this)
+        return ThymianRunConfiguration(project, this)
     }
 }

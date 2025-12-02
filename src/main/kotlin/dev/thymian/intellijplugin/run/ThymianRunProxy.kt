@@ -12,11 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.swagger.core.synthetic.generateOasDraft
 import com.intellij.util.application
-import dev.thymian.intellijplugin.cli.ActionListener
-import dev.thymian.intellijplugin.cli.ThymianConnectorService
-import dev.thymian.intellijplugin.models.ActionResultMessage
-import dev.thymian.intellijplugin.models.EmitActionMessage
-import dev.thymian.intellijplugin.models.Receiving
+import dev.thymian.intellijplugin.cli.*
 import java.util.concurrent.CompletableFuture
 
 private class ProjectFilter(project: Project) : SearchScopeEndpointsFilter {
@@ -37,11 +33,16 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     private lateinit var testData: List<DataContainer>
     val hasTestData by lazy { testData.isNotEmpty() }
 
+    constructor(project: Project, sortedEndpoint: ThymianRunSettings.SortedEndpoints<G, E>)
+            : this(project, sortedEndpoint.provider) {
+        testData = sortedEndpoint.pairedEndpoints.mapNotNull { (group, endpoint) ->
+            getOpenApi(provider, group, endpoint)
+                ?.let { DataContainer(group, endpoint, it) }
+        }
+    }
+
     private val squashedSpecification: OpenApiSpecification by lazy {
         squashOpenApiSpecifications(testData.map { it.oas })
-    }
-    private val oasDraft by lazy {
-        generateOasDraft(project.name, squashedSpecification)
     }
 
     init {
@@ -49,6 +50,10 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     }
 
     fun initialize() {
+        if (this::testData.isInitialized) {
+            return
+        }
+
         smTestProxy.addStdOutput("loading endpoints\n")
 
         val projectFilter = ProjectFilter(project)
@@ -69,6 +74,8 @@ internal class ThymianRunProxy<G : Any, E : Any>(
 
     fun runTest(): CompletableFuture<Unit> {
         smTestProxy.addStdOutput("processing\n")
+
+        val oasDraft = generateOasDraft(project.name, squashedSpecification)
 
         val connection = project.getService(ThymianConnectorService::class.java)
         val result = CompletableFuture<Unit>()

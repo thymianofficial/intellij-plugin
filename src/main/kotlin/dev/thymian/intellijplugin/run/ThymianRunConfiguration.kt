@@ -10,15 +10,17 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import org.jdom.Element
 
-class ThymianConfiguration(project: Project, factory: ConfigurationFactory) :
+class ThymianRunConfiguration(project: Project, factory: ConfigurationFactory) :
     LocatableConfigurationBase<RunProfileState>(project, factory, "Thymian") {
 
+    internal var runSettings = ThymianRunSettings()
+
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-        return ThymianState(environment, this)
+        return ThymianRunState(environment, this)
     }
 
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> {
-        return ThymianConfigurationEditor()
+        return ThymianRunConfigurationEditor()
     }
 
     override fun writeExternal(element: Element) {
@@ -29,8 +31,18 @@ class ThymianConfiguration(project: Project, factory: ConfigurationFactory) :
         super.readExternal(element)
     }
 
-    override fun suggestedName(): String? {
-        return super.suggestedName()
+    override fun suggestedName(): String {
+        if (runSettings.sortedEndpoints.isEmpty()) {
+            return ""
+        }
+
+        return runSettings.sortedEndpoints.joinToString(";") { (provider, items) ->
+            "${provider.presentation.title}(${
+                items.mapNotNull {
+                    it.getUrlTargetInfos()?.firstOrNull()?.path?.getPresentation()
+                }.joinToString(",")
+            })"
+        }
     }
 }
 

@@ -17,9 +17,9 @@ import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.util.application
 
 
-class ThymianState(
+class ThymianRunState(
     val environment: ExecutionEnvironment,
-    val configuration: ThymianConfiguration
+    val configuration: ThymianRunConfiguration
 ) : RunProfileState {
     private val project = environment.project
 
@@ -27,7 +27,11 @@ class ThymianState(
         executor: Executor?,
         runner: ProgramRunner<*>
     ): ExecutionResult {
-        val runProxies = getRunProxies()
+        val runProxies = if (configuration.runSettings.sortedEndpoints.isEmpty()) {
+            getRunProxies()
+        } else {
+            getRunProxiesFromEndpoints(configuration.runSettings.sortedEndpoints)
+        }
 
         val properties = SMTRunnerConsoleProperties(
             configuration,
@@ -35,7 +39,7 @@ class ThymianState(
             environment.executor
         )
         val console = SMTestRunnerConnectionUtil.createConsole(properties)
-        val processHandler = ThymianProcessHandler(console.resultsViewer.testsRootNode, runProxies)
+        val processHandler = ThymianRunProcessHandler(console.resultsViewer.testsRootNode, runProxies)
         console.attachToProcess(processHandler)
 
         val descriptor = RunContentDescriptor(
@@ -75,5 +79,10 @@ class ThymianState(
     private fun EndpointsProvider<*, *>.isAvailable(): Boolean {
         return getStatus(project) != EndpointsProvider.Status.UNAVAILABLE
     }
+
+    private fun getRunProxiesFromEndpoints(endpoints: List<ThymianRunSettings.SortedEndpoints<*, *>>) =
+        ReadAction.compute<Sequence<ThymianRunProxy<*, *>>, Throwable> {
+            endpoints.map { ThymianRunProxy(project, it) }.asSequence()
+        }
 }
 

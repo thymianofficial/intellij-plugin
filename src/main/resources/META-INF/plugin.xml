@@ -16,6 +16,6 @@
         implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
 
     <!-- Run -->
-    <configurationType implementation="dev.thymian.intellijplugin.run.ThymianConfigurationType"/>
+    <configurationType implementation="dev.thymian.intellijplugin.run.ThymianRunConfigurationType"/>
   </extensions>
 </idea-plugin>

@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.models
+package dev.thymian.intellijplugin.cli
 
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -53,7 +53,10 @@ class Ready {
 data class EmitEventMessage<T : Any>(
     val name: String,
     val payload: T,
-)
+) {
+    @Serializable
+    data class ExitPayload(val code: Int? = null)
+}
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable

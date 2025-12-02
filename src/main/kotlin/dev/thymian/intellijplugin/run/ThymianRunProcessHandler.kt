@@ -6,7 +6,7 @@ import com.intellij.openapi.application.ReadAction
 import com.intellij.util.application
 import java.util.concurrent.CompletableFuture
 
-internal class ThymianProcessHandler(
+internal class ThymianRunProcessHandler(
     private val rootNode: SMTestProxy.SMRootTestProxy,
     private val runProxies: Sequence<ThymianRunProxy<*, *>>
 ) : ProcessHandler() {

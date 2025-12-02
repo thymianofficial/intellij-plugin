@@ -6,14 +6,14 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import javax.swing.JComponent
 
-class ThymianConfigurationEditor : SettingsEditor<ThymianConfiguration>() {
+class ThymianRunConfigurationEditor : SettingsEditor<ThymianRunConfiguration>() {
     private lateinit var thymianBinaryField: JBTextField
 
-    override fun resetEditorFrom(configuration: ThymianConfiguration) {
+    override fun resetEditorFrom(configuration: ThymianRunConfiguration) {
         // TODO fill UI from configuration
     }
 
-    override fun applyEditorTo(configuration: ThymianConfiguration) {
+    override fun applyEditorTo(configuration: ThymianRunConfiguration) {
         // TODO fill configuration from UI
     }
 
