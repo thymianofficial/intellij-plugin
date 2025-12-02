@@ -1,6 +1,7 @@
 package dev.thymian.intellijplugin.run
 
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
+import com.intellij.microservices.endpoints.API_DEFINITION_TYPE
 import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.microservices.endpoints.ModuleEndpointsFilter
 import com.intellij.microservices.endpoints.SearchScopeEndpointsFilter
@@ -9,6 +10,7 @@ import com.intellij.microservices.oas.getOpenApi
 import com.intellij.microservices.oas.squashOpenApiSpecifications
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.swagger.core.synthetic.generateOasDraft
 import com.intellij.util.application
@@ -28,9 +30,9 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     private val provider: EndpointsProvider<G, E>
 ) {
     val name = provider.presentation.title
-    val smTestProxy = SMTestProxy(name, false, null)
+    val smTestProxy = SMTestProxy(name, true, null)
 
-    private lateinit var testData: List<DataContainer>
+    private lateinit var testData: Map<PsiFile?, List<DataContainer>>
     val hasTestData by lazy { testData.isNotEmpty() }
 
     constructor(project: Project, sortedEndpoint: ThymianRunSettings.SortedEndpoints<G, E>)
@@ -39,10 +41,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             getOpenApi(provider, group, endpoint)
                 ?.let { DataContainer(group, endpoint, it) }
         }
-    }
-
-    private val squashedSpecification: OpenApiSpecification by lazy {
-        squashOpenApiSpecifications(testData.map { it.oas })
+            .groupBy { it.file }
     }
 
     init {
@@ -70,12 +69,42 @@ internal class ThymianRunProxy<G : Any, E : Any>(
                         ?.let { DataContainer(group, endpoint, it) }
                 }
         }
+            .groupBy { it.file }
     }
 
     fun runTest(): CompletableFuture<Unit> {
         smTestProxy.addStdOutput("processing\n")
+        val testSets = testData.map { (file, data) ->
+            val dataProxy = SMTestProxy(file?.name, false, null)
+            application.invokeLater {
+                smTestProxy.addChild(dataProxy)
+                dataProxy.setStarted()
+            }
+            val squashedSpecs = squashOpenApiSpecifications(data.map { it.oas })
+            TestSet(file, dataProxy, squashedSpecs)
+        }
 
-        val oasDraft = generateOasDraft(project.name, squashedSpecification)
+        return testSets.fold(CompletableFuture.completedFuture(Unit)) { acc, testSet ->
+            acc.thenCompose { runTestInternal(testSet) }
+        }.thenApply {
+            smTestProxy.setFinished()
+        }
+    }
+
+    private fun runTestInternal(testSet: TestSet): CompletableFuture<Unit> {
+        val oasDraft = if (provider.endpointType == API_DEFINITION_TYPE) {
+            testSet.file?.containingFile?.text
+        } else {
+            generateOasDraft(project.name, testSet.specification)
+        }
+
+        if (oasDraft == null) {
+            application.invokeLater {
+                testSet.smTestProxy.setFinished()
+                testSet.smTestProxy.setTestFailed("Unable to generate specification draft", null, true)
+            }
+            return CompletableFuture.completedFuture(Unit)
+        }
 
         val connection = project.getService(ThymianConnectorService::class.java)
         val result = CompletableFuture<Unit>()
@@ -83,8 +112,8 @@ internal class ThymianRunProxy<G : Any, E : Any>(
         fun handleError(errorMessage: Receiving.ActionErrorMessage) {
             application.invokeLater {
                 result.complete(Unit)
-                smTestProxy.setFinished()
-                smTestProxy.setTestFailed(errorMessage.error.message, null, true)
+                testSet.smTestProxy.setFinished()
+                testSet.smTestProxy.setTestFailed(errorMessage.error.message, null, true)
             }
         }
 
@@ -96,10 +125,10 @@ internal class ThymianRunProxy<G : Any, E : Any>(
 
             application.invokeLater {
                 result.complete(Unit)
-                smTestProxy.addStdOutput(report)
-                smTestProxy.setFinished()
+                testSet.smTestProxy.addStdOutput(report)
+                testSet.smTestProxy.setFinished()
                 if (isFailed) {
-                    smTestProxy.setTestFailed("Linting failed", null, false)
+                    testSet.smTestProxy.setTestFailed("Linting failed", null, false)
                 }
             }
         }
@@ -129,9 +158,18 @@ internal class ThymianRunProxy<G : Any, E : Any>(
         return result
     }
 
-    inner class DataContainer(
+    private inner class DataContainer(
         val group: G,
         val endpoint: E,
         val oas: OpenApiSpecification
+    ) {
+        private val element get() = provider.getNavigationElement(group, endpoint)
+        val file by lazy { element?.containingFile }
+    }
+
+    private class TestSet(
+        val file: PsiFile?,
+        val smTestProxy: SMTestProxy,
+        val specification: OpenApiSpecification
     )
 }
