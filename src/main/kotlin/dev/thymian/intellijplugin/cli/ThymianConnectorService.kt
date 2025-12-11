@@ -3,6 +3,7 @@ package dev.thymian.intellijplugin.cli
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import dev.thymian.intellijplugin.settings.ThymianSettingsState
 import io.ktor.client.*
 import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.websocket.*
@@ -14,6 +15,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.util.concurrent.CompletableFuture
 
 @Service(Service.Level.PROJECT)
@@ -34,15 +36,58 @@ class ThymianConnectorService(project: Project, private val cs: CoroutineScope) 
     }
 
     private fun startCli(): Process? {
+        val settings = ThymianSettingsState.getInstance()
         val builder = ProcessBuilder()
-        builder.command(
-            "/home/andreas/Projects/thymian/thymian-docs/thymian/cli/bin/run.js",
-            "serve",
-            "-o",
-            "@thymian/websocket-proxy.port=${port}"
-        )
-//    return builder.start()
-        return null
+
+        val cliPath = settings.stateFlow.value.thymianCliPath
+        val binIndex = ThymianSettingsState.RUN_FILE_OPTIONS.map { cliPath.indexOf(it) }.find { it != -1 }
+        val directory = if (binIndex != null) cliPath.substring(0, binIndex) else ""
+        val command = if (binIndex != null) cliPath.substring(binIndex + 1) else cliPath
+
+        builder.directory(File(directory))
+            .command(
+                command,
+                "serve",
+                "-o",
+                "@thymian/websocket-proxy.port=${settings.state.websocketPort}"
+            )
+        val process = builder.start()
+
+        waitForServeMode(process)
+
+        return process
+    }
+
+    private fun waitForServeMode(process: Process) {
+        val reader = process.inputReader()
+        val errorReader = process.errorReader()
+
+        val timeoutMillis = 30000L // 30 seconds timeout
+        val startTime = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            if (reader.ready()) {
+                val line = reader.readLine()
+                thisLogger().info("CLI output: $line")
+                if (line?.contains("Thymian is now in \"serve\" mode") == true) {
+                    thisLogger().info("Thymian CLI is ready")
+                    return
+                }
+            }
+
+            if (errorReader.ready()) {
+                val errorLine = errorReader.readLine()
+                thisLogger().warn("CLI error output: $errorLine")
+            }
+
+            if (!process.isAlive) {
+                throw IllegalStateException("Thymian CLI process terminated unexpectedly")
+            }
+
+            Thread.sleep(100)
+        }
+
+        throw IllegalStateException("Thymian CLI did not enter serve mode within timeout period")
     }
 
     private fun connect(): CompletableFuture<Unit> = cs.launch {
@@ -130,13 +175,11 @@ class ThymianConnectorService(project: Project, private val cs: CoroutineScope) 
         }
     }
 
-    fun <T : Any> sendEvent(event: EmitEventMessage<T>) {
-        cs.launch {
-            initFuture.join()
+    fun <T : Any> sendEvent(event: EmitEventMessage<T>) = cs.launch {
+        initFuture.join()
 
-            val messageString = Json.encodeToString(event)
-            websocketSession?.send(messageString)
-        }
+        val messageString = Json.encodeToString(event)
+        websocketSession?.send(messageString)
     }
 
     fun <S : ActionResultMessage<T>, T : Any> sendAction(
@@ -154,6 +197,9 @@ class ThymianConnectorService(project: Project, private val cs: CoroutineScope) 
     }
 
     private suspend fun disconnect() {
+        websocketSession?.let {
+            sendEvent(EmitEventMessage("core.exit", EmitEventMessage.ExitPayload())).join()
+        }
         websocketSession?.close(CloseReason(CloseReason.Codes.NORMAL, "Normal close"))
         websocketSession = null
         client?.close()

@@ -29,5 +29,13 @@
 
     <!-- Run -->
     <configurationType implementation="dev.thymian.intellijplugin.run.ThymianRunConfigurationType"/>
+
+    <!-- Settings -->
+    <applicationConfigurable
+        instance="dev.thymian.intellijplugin.settings.ThymianSettingsConfigurable"
+        id="dev.thymian.intellijplugin.settings"
+        bundle="messages.ThymianBundle"
+        key="title"
+        parentId="tools"/>
   </extensions>
 </idea-plugin>
