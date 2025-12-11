@@ -37,11 +37,9 @@ class ThymianConnectorService(project: Project, private val cs: CoroutineScope) 
         val builder = ProcessBuilder()
         builder.command(
             "/home/andreas/Projects/thymian/thymian-docs/thymian/cli/bin/run.js",
-            "run",
-            "--tcp-client",
-            pluginName,
+            "serve",
             "-o",
-            "@thymian/tcp-proxy.timeout=10000"
+            "@thymian/websocket-proxy.port=${port}"
         )
 //    return builder.start()
         return null
@@ -106,8 +104,6 @@ class ThymianConnectorService(project: Project, private val cs: CoroutineScope) 
                     handleEvent(message)
                 }
             }
-        }.onFailure {
-            thisLogger().error("Error while listening for messages", it)
         }
     }
 

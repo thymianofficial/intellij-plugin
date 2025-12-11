@@ -3,6 +3,7 @@
 junit = "4.13.2"
 opentest4j = "1.3.0"
 ktor = "3.3.1"
+serialization = "1.9.0"
 
 # plugins
 changelog = "2.5.0"
@@ -14,8 +15,7 @@ qodana = "2025.2.4"
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 opentest4j = { group = "org.opentest4j", name = "opentest4j", version.ref = "opentest4j" }
-kotlinxSerializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.9.0" }
-ktorClientCore = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+kotlinxSerializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 ktorClientJava = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
 ktorClientWebSockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktor" }
 

@@ -5,11 +5,23 @@
   <vendor>qupaya technologies GmbH</vendor>
   <category>Microservices</category>
 
-  <depends>com.intellij.modules.platform</depends>
-  <depends>com.intellij.modules.microservices</depends>
-  <depends>com.intellij.swagger</depends>
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+    <plugin id="com.intellij.modules.microservices"/>
+    <plugin id="com.intellij.swagger"/>
+    <module name="intellij.libraries.ktor.client"/>
+    <module name="intellij.microservices.ui"/>
+  </dependencies>
 
   <resource-bundle>messages.ThymianBundle</resource-bundle>
+
+  <actions>
+    <action id="ThymianEndpointsRunCheckAction"
+            class="dev.thymian.intellijplugin.endpoints.ThymianEndpointsRunCheckAction"
+            icon="dev.thymian.intellijplugin.ThymianIcons.Action">
+      <add-to-group group-id="EndpointsActions.ContextMenu"/>
+    </action>
+  </actions>
 
   <extensions defaultExtensionNs="com.intellij">
     <microservices.endpointsSidePanelProvider

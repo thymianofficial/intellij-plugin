@@ -133,7 +133,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             }
         }
 
-        fun handleTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
+        fun forwardTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
             connection.sendAction(
                 EmitActionMessage.HttpLinterLintStatic(
                     EmitActionMessage.HttpLinterLintStatic.Payload(transformResult.payload)
@@ -150,7 +150,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
                 EmitActionMessage.OpenAPITransform.Payload(oasDraft)
             ),
             ActionListener<ActionResultMessage.OpenAPITransformResponse, _>(
-                onResult = ::handleTransformResult,
+                onResult = ::forwardTransformResult,
                 onError = ::handleError
             )
         )

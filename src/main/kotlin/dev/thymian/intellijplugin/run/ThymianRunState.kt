@@ -8,8 +8,6 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
-import com.intellij.execution.ui.RunContentDescriptor
-import com.intellij.execution.ui.actions.CloseAction
 import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.progress.ProgressManager
@@ -42,18 +40,9 @@ class ThymianRunState(
         val processHandler = ThymianRunProcessHandler(console.resultsViewer.testsRootNode, runProxies)
         console.attachToProcess(processHandler)
 
-        val descriptor = RunContentDescriptor(
-            console,
-            processHandler,
-            console.component,
-            "Test Results",
-            environment.executor.icon
-        )
-
         return DefaultExecutionResult(
             console,
-            processHandler,
-            CloseAction(environment.executor, descriptor, configuration.project)
+            processHandler
         )
     }
 

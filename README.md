@@ -27,6 +27,8 @@
   reports on PRs
 
 <!-- Plugin description -->
+Official Thymian IntelliJ IDEA plugin.
+
 This plugin connects your IntelliJ IDEA to your local or remote Thymian server.
 
 Thymian checks your API or single endpoints against the HTTP specification and provides you with a detailed report.
