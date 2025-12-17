@@ -53,7 +53,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             return
         }
 
-        smTestProxy.addStdOutput("loading endpoints\n")
+        smTestProxy.addStdOutput("Loading endpoints\n")
 
         val projectFilter = ProjectFilter(project)
 
@@ -73,7 +73,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     }
 
     fun runTest(thymianCLI: ThymianCLI): CompletableFuture<Unit> {
-        smTestProxy.addStdOutput("processing\n")
+        smTestProxy.addStdOutput("Processing\n")
         val testSets = testData.map { (file, data) ->
             val dataProxy = SMTestProxy(file?.name, false, null)
             application.invokeLater {
@@ -124,10 +124,13 @@ internal class ThymianRunProxy<G : Any, E : Any>(
 
             application.invokeLater {
                 result.complete(Unit)
-                testSet.smTestProxy.addStdOutput(report)
-                testSet.smTestProxy.setFinished()
-                if (isFailed) {
-                    testSet.smTestProxy.setTestFailed("Linting failed", null, false)
+                with(testSet.smTestProxy) {
+                    addStdOutput(report)
+                    addStdOutput("Done\n")
+                    setFinished()
+                    if (isFailed) {
+                        setTestFailed("Linting found issues", null, false)
+                    }
                 }
             }
         }

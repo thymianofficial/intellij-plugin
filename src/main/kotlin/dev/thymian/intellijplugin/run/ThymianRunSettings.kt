@@ -4,8 +4,6 @@ import com.intellij.microservices.endpoints.EndpointsElementItem
 import com.intellij.microservices.endpoints.EndpointsProvider
 
 class ThymianRunSettings(
-    val binaryPath: String = "",
-    val remoteConnection: String = "",
     endpoints: List<EndpointsElementItem<*, *>> = emptyList()
 ) {
     val sortedEndpoints: List<SortedEndpoints<*, *>> =
