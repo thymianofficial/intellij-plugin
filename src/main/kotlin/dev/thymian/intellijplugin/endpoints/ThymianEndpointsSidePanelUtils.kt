@@ -2,7 +2,6 @@ package dev.thymian.intellijplugin.endpoints
 
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
-import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.microservices.endpoints.EndpointsElementItem
 import com.intellij.openapi.application.ReadAction
@@ -16,8 +15,7 @@ fun runEndpointCheck(project: Project, items: List<EndpointsElementItem<*, *>>) 
         return@run
     }
 
-    val configurationType =
-        ConfigurationTypeUtil.findConfigurationType(ThymianRunConfigurationType::class.java)
+    val configurationType = ThymianRunConfigurationType()
     val factory = configurationType.configurationFactories.first()
 
     val runManager = RunManager.getInstance(project)

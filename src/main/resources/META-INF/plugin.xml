@@ -28,7 +28,7 @@
         implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
 
     <!-- Run -->
-    <configurationType implementation="dev.thymian.intellijplugin.run.ThymianRunConfigurationType"/>
+    <!--    <configurationType implementation="dev.thymian.intellijplugin.run.ThymianRunConfigurationType"/>-->
 
     <!-- Settings -->
     <applicationConfigurable
