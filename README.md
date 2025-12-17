@@ -29,9 +29,28 @@
 <!-- Plugin description -->
 Official Thymian IntelliJ IDEA plugin.
 
-This plugin connects your IntelliJ IDEA to your local or remote Thymian server.
+This plugin connects your IntelliJ IDEA to your local Thymian cli.
 
 Thymian checks your API or single endpoints against the HTTP specification and provides you with a detailed report.
+
+Check out the [Thymian CLI website](https://thymian.dev) for more information.
+
+## How to configure
+
+Make sure you have the Thymian CLI installed. Open the settings page under Tools > Thymian and set the path to the CLI,
+which is the `run.js` or the `run.cmd` depending on your OS.
+
+![Thymian settings](images/settings.png)
+
+## How to use
+
+The Thymian check is available in the endpoints list as a tab and as an action in the context menu. Either triggers the
+check on the selected endpoint.
+
+![Thymian endpoint actions](images/endpoints-action.png)
+
+![Thymian test run](images/test-run.png)
+
 <!-- Plugin description end -->
 
 ## Installation
