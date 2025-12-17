@@ -8,10 +8,11 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import dev.thymian.intellijplugin.ThymianBundle
 import org.jdom.Element
 
 class ThymianRunConfiguration(project: Project, factory: ConfigurationFactory) :
-    LocatableConfigurationBase<RunProfileState>(project, factory, "Thymian") {
+    LocatableConfigurationBase<RunProfileState>(project, factory, ThymianBundle.message("runConfiguration.name")) {
 
     internal var runSettings = ThymianRunSettings()
 

@@ -24,7 +24,7 @@ class ThymianEndpointsRunCheckAction : AnAction() {
     override fun update(e: AnActionEvent) {
         val items = e.dataContext.getData(PlatformCoreDataKeys.SELECTED_ITEMS)
 
-        e.presentation.text = ThymianBundle.message("run.thymian.check")
+        e.presentation.text = ThymianBundle.message("endpoints.sidepanel.action")
         e.presentation.isEnabled = items?.let { hasUsableEndpointItems(it) } ?: false
     }
 }

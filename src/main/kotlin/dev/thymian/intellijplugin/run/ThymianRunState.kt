@@ -12,6 +12,7 @@ import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.ThrowableComputable
+import dev.thymian.intellijplugin.ThymianBundle
 
 
 class ThymianRunState(
@@ -39,7 +40,7 @@ class ThymianRunState(
 
         val properties = SMTRunnerConsoleProperties(
             configuration,
-            "Thymian",
+            ThymianBundle.message("runConfiguration.name"),
             environment.executor
         )
         val console = SMTestRunnerConnectionUtil.createConsole(properties)

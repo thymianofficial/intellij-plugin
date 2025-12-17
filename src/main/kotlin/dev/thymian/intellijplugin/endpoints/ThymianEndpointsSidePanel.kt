@@ -12,16 +12,16 @@ import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
 class ThymianEndpointsSidePanel(val project: Project) : EndpointsSidePanel {
-    override val title = ThymianBundle.message("title")
+    override val title = ThymianBundle.message("endpoints.sidepanel.title")
     private var currentSelectedItems = emptyList<EndpointsElementItem<*, *>>()
 
     private lateinit var runButton: JButton
     override val component: JComponent = panel {
         row {
-            text("Thymian endpoint check")
+            text(ThymianBundle.message("endpoints.sidepanel.info"))
         }
         row {
-            val btn = button(ThymianBundle.message("run.check")) {
+            val btn = button(ThymianBundle.message("endpoints.sidepanel.runCheck")) {
                 runEndpointCheck(project, currentSelectedItems)
             }
             runButton = btn.component

@@ -4,6 +4,7 @@ import com.intellij.openapi.options.SettingsEditor
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import dev.thymian.intellijplugin.ThymianBundle
 import javax.swing.JComponent
 
 class ThymianRunConfigurationEditor : SettingsEditor<ThymianRunConfiguration>() {
@@ -19,9 +20,9 @@ class ThymianRunConfigurationEditor : SettingsEditor<ThymianRunConfiguration>() 
 
     override fun createEditor(): JComponent {
         return panel {
-            row("Binary") {
+            row(ThymianBundle.message("runConfiguration.fields.binary.label")) {
                 thymianBinaryField = textField()
-                    .comment("Path to the Thymian binary")
+                    .comment(ThymianBundle.message("runConfiguration.fields.binary.comment"))
                     .align(AlignX.FILL)
                     .component
             }
