@@ -72,7 +72,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             .groupBy { it.file }
     }
 
-    fun runTest(): CompletableFuture<Unit> {
+    fun runTest(thymianCLI: ThymianCLI): CompletableFuture<Unit> {
         smTestProxy.addStdOutput("processing\n")
         val testSets = testData.map { (file, data) ->
             val dataProxy = SMTestProxy(file?.name, false, null)
@@ -85,13 +85,13 @@ internal class ThymianRunProxy<G : Any, E : Any>(
         }
 
         return testSets.fold(CompletableFuture.completedFuture(Unit)) { acc, testSet ->
-            acc.thenCompose { runTestInternal(testSet) }
+            acc.thenCompose { runTestInternal(thymianCLI, testSet) }
         }.thenApply {
             smTestProxy.setFinished()
         }
     }
 
-    private fun runTestInternal(testSet: TestSet): CompletableFuture<Unit> {
+    private fun runTestInternal(thymianCLI: ThymianCLI, testSet: TestSet): CompletableFuture<Unit> {
         val oasDraft = if (provider.endpointType == API_DEFINITION_TYPE) {
             testSet.file?.containingFile?.text
         } else {
@@ -106,7 +106,6 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             return CompletableFuture.completedFuture(Unit)
         }
 
-        val connection = project.getService(ThymianConnectorService::class.java)
         val result = CompletableFuture<Unit>()
 
         fun handleError(errorMessage: Receiving.ActionErrorMessage) {
@@ -134,7 +133,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
         }
 
         fun forwardTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
-            connection.sendAction(
+            thymianCLI.sendAction(
                 EmitActionMessage.HttpLinterLintStatic(
                     EmitActionMessage.HttpLinterLintStatic.Payload(transformResult.payload)
                 ),
@@ -145,7 +144,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             )
         }
 
-        connection.sendAction(
+        thymianCLI.sendAction(
             EmitActionMessage.OpenAPITransform(
                 EmitActionMessage.OpenAPITransform.Payload(oasDraft)
             ),

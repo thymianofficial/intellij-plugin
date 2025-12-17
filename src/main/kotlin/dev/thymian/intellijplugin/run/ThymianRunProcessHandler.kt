@@ -4,12 +4,16 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.openapi.application.ReadAction
 import com.intellij.util.application
+import dev.thymian.intellijplugin.cli.ThymianCLI
+import dev.thymian.intellijplugin.cli.ThymianCLISessionManager
 import java.util.concurrent.CompletableFuture
 
 internal class ThymianRunProcessHandler(
     private val rootNode: SMTestProxy.SMRootTestProxy,
     private val runProxies: Sequence<ThymianRunProxy<*, *>>
 ) : ProcessHandler() {
+    private var thymianCLI: ThymianCLI? = null
+
     private fun prepare() = ReadAction.compute<List<ThymianRunProxy<*, *>>, Throwable> {
         runProxies
             .onEach { it.initialize() }
@@ -27,11 +31,18 @@ internal class ThymianRunProcessHandler(
         application.executeOnPooledThread<Unit> {
             rootNode.setSuiteStarted()
 
+
             val validRunProxies = prepare()
 
-            validRunProxies
-                .fold(CompletableFuture<Unit>().completeAsync {}) { prev, runProxy ->
-                    prev.thenCompose { runProxy.runTest() }
+            application.getService(ThymianCLISessionManager::class.java).getThymianCLI()
+                .thenCompose { thymianCLI ->
+                    this.thymianCLI = thymianCLI
+                    thymianCLI.initialize().thenApply { thymianCLI }
+                }
+                .thenCompose { thymianCLI ->
+                    validRunProxies.fold(CompletableFuture<Unit>().completeAsync {}) { prev, runProxy ->
+                        prev.thenCompose { runProxy.runTest(thymianCLI) }
+                    }.thenCompose { thymianCLI.close() }
                 }.thenRun {
                     application.invokeLater {
                         rootNode.setFinished()
@@ -42,6 +53,8 @@ internal class ThymianRunProcessHandler(
     }
 
     override fun destroyProcessImpl() {
+        thymianCLI?.close()
+        thymianCLI = null
         notifyProcessTerminated(0)
     }
 

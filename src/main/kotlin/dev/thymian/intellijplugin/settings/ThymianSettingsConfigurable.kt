@@ -18,7 +18,7 @@ class ThymianSettingsConfigurable : BoundSearchableConfigurable(
                 textFieldWithBrowseButton(ThymianBundle.message("settings.cliPath.dialog.title"))
                     .label(ThymianBundle.message("settings.cliPath.label"))
                     .bindText(
-                        getter = { settings.state.thymianCliPath },
+                        getter = { settings.thymianCliPath },
                         setter = {
                             if (ThymianSettingsState.RUN_FILE_OPTIONS.none { opt -> it.endsWith(opt) }) {
                                 settings.thymianCliPath = ""
@@ -34,7 +34,7 @@ class ThymianSettingsConfigurable : BoundSearchableConfigurable(
                 textField()
                     .label(ThymianBundle.message("settings.port.label"))
                     .bindIntText(
-                        getter = { settings.state.websocketPort },
+                        getter = { settings.websocketPort },
                         setter = { settings.websocketPort = it }
                     )
                     .align(AlignX.LEFT)

@@ -12,7 +12,6 @@ import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.ThrowableComputable
-import com.intellij.util.application
 
 
 class ThymianRunState(
@@ -25,11 +24,18 @@ class ThymianRunState(
         executor: Executor?,
         runner: ProgramRunner<*>
     ): ExecutionResult {
-        val runProxies = if (configuration.runSettings.sortedEndpoints.isEmpty()) {
-            getRunProxies()
-        } else {
-            getRunProxiesFromEndpoints(configuration.runSettings.sortedEndpoints)
-        }
+        // If things like the Spring controller tooling are not initialized yet, we must read the endpoints
+        // wrapped in synchronous processing, because we trigger the initialization.
+        // If we don't wrap it, things will crash.
+        val runProxies = ProgressManager.getInstance().runProcessWithProgressSynchronously(ThrowableComputable {
+            ReadAction.compute<Sequence<ThymianRunProxy<*, *>>, Throwable> {
+                if (configuration.runSettings.sortedEndpoints.isEmpty()) {
+                    getRunProxiesFromProviders()
+                } else {
+                    getRunProxiesFromEndpoints(configuration.runSettings.sortedEndpoints)
+                }
+            }
+        }, "", true, null)
 
         val properties = SMTRunnerConsoleProperties(
             configuration,
@@ -46,32 +52,19 @@ class ThymianRunState(
         )
     }
 
-    private fun getRunProxies(): Sequence<ThymianRunProxy<*, *>> {
-        return if (application.isDispatchThread) {
-            // If things like the Spring controller tooling are not initialized yet, we must read the endpoints
-            // wrapped in synchronous processing, because we trigger the initialization.
-            // If we don't wrap it, things will crash.
-            ProgressManager.getInstance().runProcessWithProgressSynchronously(ThrowableComputable {
-                getRunProxiesFromProviders()
-            }, "", true, null)
-        } else {
-            getRunProxiesFromProviders()
-        }
-    }
-
-    private fun getRunProxiesFromProviders() = ReadAction.compute<Sequence<ThymianRunProxy<*, *>>, Throwable> {
-        EndpointsProvider.getAvailableProviders(project)
-            .filter { it.isAvailable() }
+    private fun getRunProxiesFromProviders(): Sequence<ThymianRunProxy<*, *>> {
+        return EndpointsProvider.getAvailableProviders(project)
+            .filter { it.isUsable() }
             .map { endpointProvider -> ThymianRunProxy(project, endpointProvider) }
     }
 
-    private fun EndpointsProvider<*, *>.isAvailable(): Boolean {
+    private fun EndpointsProvider<*, *>.isUsable(): Boolean {
         return getStatus(project) != EndpointsProvider.Status.UNAVAILABLE
     }
 
-    private fun getRunProxiesFromEndpoints(endpoints: List<ThymianRunSettings.SortedEndpoints<*, *>>) =
-        ReadAction.compute<Sequence<ThymianRunProxy<*, *>>, Throwable> {
-            endpoints.map { ThymianRunProxy(project, it) }.asSequence()
-        }
+    private fun getRunProxiesFromEndpoints(endpoints: List<ThymianRunSettings.SortedEndpoints<*, *>>): Sequence<ThymianRunProxy<*, *>> {
+        return endpoints.map { ThymianRunProxy(project, it) }
+            .asSequence()
+    }
 }
 

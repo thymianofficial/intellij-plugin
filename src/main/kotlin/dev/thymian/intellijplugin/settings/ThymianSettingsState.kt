@@ -5,37 +5,25 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.application
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 @Service(Service.Level.APP)
 @State(name = "ThymianSettings", storages = [Storage("ThymianSettings.xml")])
 internal class ThymianSettingsState : PersistentStateComponent<ThymianSettingsState.State> {
 
     data class State(
-        val thymianCliPath: String = "",
-        val websocketPort: Int = DEFAULT_WEBSOCKET_PORT,
+        var thymianCliPath: String = "",
+        var websocketPort: Int = DEFAULT_WEBSOCKET_PORT,
     )
 
-    private val _stateFlow = MutableStateFlow<ThymianSettingsState.State>(State())
-    val stateFlow = _stateFlow.asStateFlow()
+    private var state = State()
 
-    var thymianCliPath: String
-        get() = stateFlow.value.thymianCliPath
-        set(path) {
-            _stateFlow.apply { value = value.copy(thymianCliPath = path) }
-        }
+    var thymianCliPath: String by state::thymianCliPath
+    var websocketPort: Int by state::websocketPort
 
-    var websocketPort: Int
-        get() = stateFlow.value.websocketPort
-        set(port) {
-            _stateFlow.apply { value = value.copy(websocketPort = port) }
-        }
-
-    override fun getState(): State = stateFlow.value
+    override fun getState(): State = state
 
     override fun loadState(state: State) {
-        _stateFlow.value = state
+        this.state = state
     }
 
     companion object {
