@@ -17,7 +17,6 @@ internal class ThymianRunProcessHandler(
     private fun prepare() = ReadAction.compute<List<ThymianRunProxy<*, *>>, Throwable> {
         runProxies
             .onEach { it.initialize() }
-            .filter { it.hasTestData }
             .toList()
             .also { validProxies ->
                 validProxies.map { it.smTestProxy }
@@ -31,10 +30,9 @@ internal class ThymianRunProcessHandler(
         application.executeOnPooledThread<Unit> {
             rootNode.setSuiteStarted()
 
-
             val validRunProxies = prepare()
 
-            application.getService(ThymianCLISessionManager::class.java).getThymianCLI()
+            ThymianCLISessionManager.getInstance().getThymianCLI()
                 .thenCompose { thymianCLI ->
                     this.thymianCLI = thymianCLI
                     thymianCLI.initialize().thenApply { thymianCLI }
@@ -48,6 +46,12 @@ internal class ThymianRunProcessHandler(
                         rootNode.setFinished()
                         notifyProcessTerminated(0)
                     }
+                }
+                .exceptionally { ex ->
+                    rootNode.setFinished()
+                    rootNode.setTestFailed(ex.message, ex.stackTrace.contentToString(), true)
+                    destroyProcessImpl()
+                    null
                 }
         }
     }

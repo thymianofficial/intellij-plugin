@@ -24,6 +24,10 @@
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
+    <applicationService
+        serviceInterface="dev.thymian.intellijplugin.cli.ThymianCLISessionManager"
+        serviceImplementation="dev.thymian.intellijplugin.cli.SequentialThymianCLISessionManager"/>
+
     <microservices.endpointsSidePanelProvider
         implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
 

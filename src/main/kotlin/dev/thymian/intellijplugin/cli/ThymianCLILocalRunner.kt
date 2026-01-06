@@ -50,7 +50,7 @@ internal class ThymianCLILocalRunner(
         val timeoutMillis = 30000L // 30 seconds timeout
         val startTime = System.currentTimeMillis()
 
-        var startecCli = false
+        var startedCli = false
         withContext(Dispatchers.IO) {
             while (System.currentTimeMillis() - startTime < timeoutMillis) {
                 if (reader.ready()) {
@@ -58,7 +58,7 @@ internal class ThymianCLILocalRunner(
                     thisLogger().info("CLI output: $line")
                     if (line?.contains("Thymian is now in \"serve\" mode") == true) {
                         thisLogger().info("Thymian CLI is ready")
-                        startecCli = true
+                        startedCli = true
                         break
                     }
                 }
@@ -76,7 +76,7 @@ internal class ThymianCLILocalRunner(
             }
         }
 
-        if (!startecCli) {
+        if (!startedCli) {
             throw IllegalStateException("Thymian CLI did not enter serve mode within timeout period")
         }
     }
@@ -87,6 +87,9 @@ internal class ThymianCLILocalRunner(
 
     private fun stopCliProcess() = cs.launch {
         withContext(Dispatchers.IO) {
+            if (!cliProcess.isAlive) {
+                return@withContext
+            }
             cliProcess.outputWriter().apply {
                 write("q")
                 flush()

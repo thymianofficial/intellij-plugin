@@ -8,6 +8,7 @@ import com.intellij.microservices.endpoints.SearchScopeEndpointsFilter
 import com.intellij.microservices.oas.OpenApiSpecification
 import com.intellij.microservices.oas.getOpenApi
 import com.intellij.microservices.oas.squashOpenApiSpecifications
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
@@ -33,14 +34,11 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     val smTestProxy = SMTestProxy(name, true, null)
 
     private lateinit var testData: Map<PsiFile?, List<DataContainer>>
-    val hasTestData by lazy { testData.isNotEmpty() }
 
     constructor(project: Project, sortedEndpoint: ThymianRunSettings.SortedEndpoints<G, E>)
             : this(project, sortedEndpoint.provider) {
-        testData = sortedEndpoint.pairedEndpoints.mapNotNull { (group, endpoint) ->
-            getOpenApi(provider, group, endpoint)
-                ?.let { DataContainer(group, endpoint, it) }
-        }
+        testData = sortedEndpoint.pairedEndpoints
+            .map { (group, endpoint) -> DataContainer(group, endpoint) }
             .groupBy { it.file }
     }
 
@@ -64,10 +62,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
 
         testData = endPointGroups.flatMap { group ->
             provider.getEndpoints(group)
-                .mapNotNull { endpoint ->
-                    getOpenApi(provider, group, endpoint)
-                        ?.let { DataContainer(group, endpoint, it) }
-                }
+                .map { endpoint -> DataContainer(group, endpoint) }
         }
             .groupBy { it.file }
     }
@@ -80,7 +75,8 @@ internal class ThymianRunProxy<G : Any, E : Any>(
                 smTestProxy.addChild(dataProxy)
                 dataProxy.setStarted()
             }
-            val squashedSpecs = squashOpenApiSpecifications(data.map { it.oas })
+            val allSpecs = data.mapNotNull { it.oas }
+            val squashedSpecs = if (allSpecs.isEmpty()) null else squashOpenApiSpecifications(allSpecs)
             TestSet(file, dataProxy, squashedSpecs)
         }
 
@@ -92,10 +88,10 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     }
 
     private fun runTestInternal(thymianCLI: ThymianCLI, testSet: TestSet): CompletableFuture<Unit> {
-        val oasDraft = if (provider.endpointType == API_DEFINITION_TYPE) {
-            testSet.file?.containingFile?.text
-        } else {
-            generateOasDraft(project.name, testSet.specification)
+        val oasDraft = when {
+            provider.endpointType == API_DEFINITION_TYPE -> testSet.file?.containingFile?.text
+            testSet.specification != null -> generateOasDraft(project.name, testSet.specification)
+            else -> null
         }
 
         if (oasDraft == null) {
@@ -162,9 +158,12 @@ internal class ThymianRunProxy<G : Any, E : Any>(
 
     private inner class DataContainer(
         val group: G,
-        val endpoint: E,
-        val oas: OpenApiSpecification
+        val endpoint: E
     ) {
+        val oas: OpenApiSpecification? = ReadAction.compute<OpenApiSpecification?, Throwable> {
+            getOpenApi(provider, group, endpoint)
+        }
+
         private val element get() = provider.getNavigationElement(group, endpoint)
         val file by lazy { element?.containingFile }
     }
@@ -172,6 +171,6 @@ internal class ThymianRunProxy<G : Any, E : Any>(
     private class TestSet(
         val file: PsiFile?,
         val smTestProxy: SMTestProxy,
-        val specification: OpenApiSpecification
+        val specification: OpenApiSpecification?
     )
 }
