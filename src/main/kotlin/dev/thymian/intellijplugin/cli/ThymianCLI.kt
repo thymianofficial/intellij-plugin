@@ -3,7 +3,7 @@ package dev.thymian.intellijplugin.cli
 import java.util.concurrent.CompletableFuture
 
 internal interface ThymianCLI {
-    fun initialize(): CompletableFuture<Unit>
+    fun initialize(messageListener: (String) -> Unit): CompletableFuture<Unit>
 
     fun <T : Any> sendEvent(event: EmitEventMessage<T>)
 

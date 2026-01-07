@@ -172,7 +172,7 @@ private class TestThymianCLI : ThymianCLI {
     private var _initialized = false
     val initialized get() = synchronized(lock) { _initialized }
 
-    override fun initialize(): CompletableFuture<Unit> {
+    override fun initialize(messageListener: (String) -> Unit): CompletableFuture<Unit> {
         synchronized(lock) {
             _initialized = true
         }

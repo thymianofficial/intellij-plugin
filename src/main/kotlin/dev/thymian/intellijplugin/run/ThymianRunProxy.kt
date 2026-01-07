@@ -115,7 +115,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
         fun handleLintingResult(lintResult: ActionResultMessage.HttpLinterLintStaticResponse) {
             val report = lintResult.payload
                 .flatMap { it.reports }
-                .joinToString("\n") { "${it.title} (${it.topic})\n${it.text}" }
+                .joinToString("\n\n") { "${it.severity}: ${it.title} (${it.category})\n${it.summary}" }
             val isFailed = lintResult.payload.any { !it.valid }
 
             application.invokeLater {
@@ -126,12 +126,13 @@ internal class ThymianRunProxy<G : Any, E : Any>(
                     setFinished()
                     if (isFailed) {
                         setTestFailed("Linting found issues", null, false)
+                        smTestProxy.setTestFailed(null, null, false)
                     }
                 }
             }
         }
 
-        fun forwardTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
+        fun lintTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
             thymianCLI.sendAction(
                 EmitActionMessage.HttpLinterLintStatic(
                     EmitActionMessage.HttpLinterLintStatic.Payload(transformResult.payload)
@@ -143,12 +144,14 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             )
         }
 
+        val transformMessage = EmitActionMessage.OpenAPITransform(
+            EmitActionMessage.OpenAPITransform.Payload(oasDraft)
+        )
+        transformMessage.options = EmitActionMessage.Options(timeout = 10000, strategy = "first")
         thymianCLI.sendAction(
-            EmitActionMessage.OpenAPITransform(
-                EmitActionMessage.OpenAPITransform.Payload(oasDraft)
-            ),
+            transformMessage,
             ActionListener<ActionResultMessage.OpenAPITransformResponse, _>(
-                onResult = ::forwardTransformResult,
+                onResult = ::lintTransformResult,
                 onError = ::handleError
             )
         )

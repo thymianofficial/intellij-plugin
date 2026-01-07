@@ -64,7 +64,7 @@ sealed class EmitActionMessage {
 
     @EncodeDefault
     val type = "emitAction"
-    open val options: Options? = null
+    open var options: Options? = null
 
     /**
      * Options for action execution.
@@ -74,7 +74,7 @@ sealed class EmitActionMessage {
      */
     @Serializable
     data class Options(
-        val strategy: String? = "first",
+        val strategy: String,
         val timeout: Int
     )
 
@@ -203,11 +203,10 @@ sealed interface ActionResultMessage<T : Any> {
         @Serializable
         @JsonIgnoreUnknownKeys
         data class ThymianReport(
-            val topic: String,
-            val subTopic: String? = null,
             val title: String,
-            val text: String,
-            val isProblem: Boolean,
+            val summary: String,
+            val severity: String,
+            val category: String?
         )
     }
 }

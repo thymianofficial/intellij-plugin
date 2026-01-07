@@ -35,7 +35,8 @@ internal class ThymianRunProcessHandler(
             ThymianCLISessionManager.getInstance().getThymianCLI()
                 .thenCompose { thymianCLI ->
                     this.thymianCLI = thymianCLI
-                    thymianCLI.initialize().thenApply { thymianCLI }
+                    thymianCLI.initialize { rootNode.addStdOutput("$it\n") }
+                        .thenApply { thymianCLI }
                 }
                 .thenCompose { thymianCLI ->
                     validRunProxies.fold(CompletableFuture<Unit>().completeAsync {}) { prev, runProxy ->

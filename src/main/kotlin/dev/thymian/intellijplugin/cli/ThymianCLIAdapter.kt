@@ -28,7 +28,7 @@ internal class ThymianCLIAdapter(private val settings: ThymianSettingsState.Stat
 
     private val actionResponseListeners = mutableMapOf<String, ActionListener<*, *>>()
 
-    override fun initialize(): CompletableFuture<Unit> {
+    override fun initialize(messageListener: (String) -> Unit): CompletableFuture<Unit> {
         initFuture = cs.launch {
             client = HttpClient(Java) {
                 install(WebSockets.Plugin)
