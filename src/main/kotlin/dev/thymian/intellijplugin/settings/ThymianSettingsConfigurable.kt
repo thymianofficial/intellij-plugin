@@ -1,45 +1,63 @@
 package dev.thymian.intellijplugin.settings
 
-import com.intellij.openapi.options.BoundSearchableConfigurable
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.textFieldWithBrowseButton
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.bindIntText
-import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
 import dev.thymian.intellijplugin.ThymianBundle
+import javax.swing.JComponent
 
-class ThymianSettingsConfigurable : BoundSearchableConfigurable(
-    ThymianBundle.message("settings.title"),
-    "dev.thymian.intellijplugin.settings"
-) {
-    override fun createPanel() = panel {
-        val settings = ThymianSettingsState.getInstance()
-        group {
-            row {
-                textFieldWithBrowseButton(ThymianBundle.message("settings.cliPath.dialog.title"))
-                    .label(ThymianBundle.message("settings.cliPath.label"))
-                    .bindText(
-                        getter = { settings.thymianCliPath },
-                        setter = {
-                            if (ThymianSettingsState.RUN_FILE_OPTIONS.none { opt -> it.endsWith(opt) }) {
-                                settings.thymianCliPath = ""
-                            } else {
-                                settings.thymianCliPath = it
-                            }
-                        }
-                    )
-                    .align(AlignX.FILL)
-                    .comment(ThymianBundle.message("settings.cliPath.comment"))
-            }
-            row {
-                textField()
-                    .label(ThymianBundle.message("settings.port.label"))
-                    .bindIntText(
-                        getter = { settings.websocketPort },
-                        setter = { settings.websocketPort = it }
-                    )
-                    .align(AlignX.LEFT)
-                    .comment(ThymianBundle.message("settings.port.comment"))
+internal class ThymianSettingsConfigurable : SearchableConfigurable {
+    private val settingsProvider = ThymianSettings.getInstance()
+
+    private lateinit var executablePathInput: TextFieldWithBrowseButton
+    private lateinit var websocketPortInput: JBTextField
+
+    override fun getDisplayName(): String = "Thymian"
+    override fun getId(): String = "dev.thymian.intellijplugin.settings"
+
+    override fun createComponent(): JComponent {
+        val descriptor = FileChooserDescriptorFactory.singleFile()
+            .withExtensionFilter("Executables", "js", "cmd")
+            .withTitle(ThymianBundle.message("settings.cliPath.dialog.title"))
+        executablePathInput = textFieldWithBrowseButton(null, descriptor)
+
+        websocketPortInput = JBTextField()
+
+        return panel {
+            group {
+                row {
+                    label(ThymianBundle.message("settings.cliPath.label"))
+                    cell(executablePathInput)
+                        .align(AlignX.FILL)
+                        .comment(ThymianBundle.message("settings.cliPath.comment"))
+                }.layout(RowLayout.PARENT_GRID)
+                row {
+                    label(ThymianBundle.message("settings.port.label"))
+                    cell(websocketPortInput)
+                        .align(AlignX.LEFT)
+                        .comment(ThymianBundle.message("settings.port.comment"))
+                }.layout(RowLayout.PARENT_GRID)
             }
         }
+    }
+
+    override fun isModified(): Boolean {
+        return settingsProvider.thymianCliPath != executablePathInput.text ||
+                settingsProvider.websocketPort != (websocketPortInput.text.toIntOrNull() ?: 0)
+    }
+
+    override fun apply() {
+        settingsProvider.thymianCliPath = executablePathInput.text
+        settingsProvider.websocketPort = websocketPortInput.text.toIntOrNull() ?: 0
+    }
+
+    override fun reset() {
+        executablePathInput.text = settingsProvider.thymianCliPath
+        websocketPortInput.text = settingsProvider.websocketPort.toString()
     }
 }

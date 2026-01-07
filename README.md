@@ -29,9 +29,10 @@
 <!-- Plugin description -->
 Official Thymian IntelliJ IDEA plugin.
 
-This plugin connects your IntelliJ IDEA to your local Thymian cli.
+This plugin connects your JetBrains IDE to your local Thymian CLI.
 
-Thymian checks your API or single endpoints against the HTTP specification and provides you with a detailed report.
+Thymian checks your API or endpoints from API controllers against the HTTP specification or own HTTP API tests and
+provides you with a detailed report.
 
 Check out the [Thymian CLI website](https://thymian.dev) for more information.
 
@@ -50,6 +51,11 @@ check on the selected endpoint.
 ![Thymian endpoint actions](images/endpoints-action.png)
 
 ![Thymian test run](images/test-run.png)
+
+## Notes
+
+It's not possible to check a single endpoint for API specification files like an OpenAPI specification yaml or json
+file. Triggering the check on a single endpoint will check the whole API specification.
 
 <!-- Plugin description end -->
 

@@ -3,7 +3,7 @@ package dev.thymian.intellijplugin.cli
 import com.intellij.collaboration.async.cancelAndJoinSilently
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.awaitExit
-import dev.thymian.intellijplugin.settings.ThymianSettingsState
+import dev.thymian.intellijplugin.settings.ThymianSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.asCompletableFuture
 import java.io.File
@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 internal class ThymianCLILocalRunner(
     private val cli: ThymianCLI,
-    private val settings: ThymianSettingsState.State,
+    private val settings: ThymianSettings.State,
     private val cs: CoroutineScope
 ) : ThymianCLI by cli {
     private lateinit var cliProcess: Process
@@ -43,7 +43,7 @@ internal class ThymianCLILocalRunner(
 
     private fun getProcessAndDirectory(): Pair<String, String> {
         val cliPath = settings.thymianCliPath
-        val binIndex = ThymianSettingsState.RUN_FILE_OPTIONS.map { cliPath.indexOf(it) }.find { it != -1 }
+        val binIndex = ThymianSettings.RUN_FILE_OPTIONS.map { cliPath.indexOf(it) }.find { it != -1 }
         val directory = if (binIndex != null) cliPath.substring(0, binIndex) else ""
         val command = if (binIndex != null) cliPath.substring(binIndex + 1) else cliPath
         return Pair(directory, command)

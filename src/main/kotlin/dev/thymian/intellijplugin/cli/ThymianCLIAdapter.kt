@@ -2,7 +2,7 @@ package dev.thymian.intellijplugin.cli
 
 import com.intellij.collaboration.async.cancelAndJoinSilently
 import com.intellij.openapi.diagnostic.thisLogger
-import dev.thymian.intellijplugin.settings.ThymianSettingsState
+import dev.thymian.intellijplugin.settings.ThymianSettings
 import io.ktor.client.*
 import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.websocket.*
@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.util.concurrent.CompletableFuture
 
-internal class ThymianCLIAdapter(private val settings: ThymianSettingsState.State, private val cs: CoroutineScope) :
+internal class ThymianCLIAdapter(private val settings: ThymianSettings.State, private val cs: CoroutineScope) :
     ThymianCLI {
     private val pluginName = "intellij-plugin"
     private var client: HttpClient? = null

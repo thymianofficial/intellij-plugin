@@ -38,8 +38,9 @@
     <applicationConfigurable
         instance="dev.thymian.intellijplugin.settings.ThymianSettingsConfigurable"
         id="dev.thymian.intellijplugin.settings"
-        bundle="messages.ThymianBundle"
-        key="title"
+        displayName="Thymian"
         parentId="tools"/>
+
+    <applicationService serviceImplementation="dev.thymian.intellijplugin.settings.ThymianSettings"/>
   </extensions>
 </idea-plugin>
