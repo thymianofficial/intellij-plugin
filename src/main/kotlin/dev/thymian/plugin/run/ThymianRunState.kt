@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.run
+package dev.thymian.plugin.run
 
 import com.intellij.execution.DefaultExecutionResult
 import com.intellij.execution.ExecutionResult
@@ -12,7 +12,7 @@ import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.ThrowableComputable
-import dev.thymian.intellijplugin.ThymianBundle
+import dev.thymian.plugin.ThymianBundle
 
 
 class ThymianRunState(

@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.settings
+package dev.thymian.plugin.settings
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SearchableConfigurable
@@ -8,7 +8,7 @@ import com.intellij.ui.components.textFieldWithBrowseButton
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
-import dev.thymian.intellijplugin.ThymianBundle
+import dev.thymian.plugin.ThymianBundle
 import javax.swing.JComponent
 
 internal class ThymianSettingsConfigurable : SearchableConfigurable {

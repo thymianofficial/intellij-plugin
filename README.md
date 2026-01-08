@@ -36,10 +36,16 @@ provides you with a detailed report.
 
 Check out the [Thymian CLI website](https://thymian.dev) for more information.
 
+## Requirements
+
+Have the Thymian CLI installed on your local machine.
+
 ## How to configure
 
 Make sure you have the Thymian CLI installed. Open the settings page under Tools > Thymian and set the path to the CLI,
-which is the `run.js` or the `run.cmd` depending on your OS.
+which is the `run.js` (Linux / MacOS) or the `run.cmd` (Windows) depending on your Operating System.
+
+Change the default port if necessary, e.g., it's already used by another application.
 
 ![Thymian settings](images/settings.png)
 

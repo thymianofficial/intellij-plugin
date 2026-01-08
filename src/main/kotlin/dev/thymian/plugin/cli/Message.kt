@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.cli
+package dev.thymian.plugin.cli
 
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi

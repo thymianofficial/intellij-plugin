@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.endpoints
+package dev.thymian.plugin.endpoints
 
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
@@ -6,9 +6,9 @@ import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.microservices.endpoints.EndpointsElementItem
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.project.Project
-import dev.thymian.intellijplugin.run.ThymianRunConfiguration
-import dev.thymian.intellijplugin.run.ThymianRunConfigurationType
-import dev.thymian.intellijplugin.run.ThymianRunSettings
+import dev.thymian.plugin.run.ThymianRunConfiguration
+import dev.thymian.plugin.run.ThymianRunConfigurationType
+import dev.thymian.plugin.run.ThymianRunSettings
 
 fun runEndpointCheck(project: Project, items: List<EndpointsElementItem<*, *>>) = ReadAction.run<Throwable> {
     if (items.isEmpty()) {

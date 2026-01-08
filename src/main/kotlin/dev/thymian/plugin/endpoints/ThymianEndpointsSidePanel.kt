@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.endpoints
+package dev.thymian.plugin.endpoints
 
 import com.intellij.microservices.endpoints.EndpointsElementItem
 import com.intellij.microservices.endpoints.EndpointsListItem
@@ -6,7 +6,7 @@ import com.intellij.microservices.endpoints.EndpointsSidePanel
 import com.intellij.microservices.endpoints.EndpointsSidePanelProvider
 import com.intellij.openapi.project.Project
 import com.intellij.ui.dsl.builder.panel
-import dev.thymian.intellijplugin.ThymianBundle
+import dev.thymian.plugin.ThymianBundle
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.SwingUtilities

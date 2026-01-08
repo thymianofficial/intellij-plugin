@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin
+package dev.thymian.plugin
 
 import com.intellij.openapi.util.IconLoader
 

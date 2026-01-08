@@ -1,9 +1,9 @@
-package dev.thymian.intellijplugin.cli
+package dev.thymian.plugin.cli
 
 import com.intellij.collaboration.async.cancelAndJoinSilently
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.awaitExit
-import dev.thymian.intellijplugin.settings.ThymianSettings
+import dev.thymian.plugin.settings.ThymianSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.asCompletableFuture
 import java.io.File

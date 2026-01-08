@@ -1,4 +1,4 @@
-package dev.thymian.intellijplugin.cli
+package dev.thymian.plugin.cli
 
 class ActionListener<S : ActionResultMessage<T>, T : Any>(
     private val onResult: (S) -> Unit,

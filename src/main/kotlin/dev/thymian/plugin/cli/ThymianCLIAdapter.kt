@@ -1,8 +1,8 @@
-package dev.thymian.intellijplugin.cli
+package dev.thymian.plugin.cli
 
 import com.intellij.collaboration.async.cancelAndJoinSilently
 import com.intellij.openapi.diagnostic.thisLogger
-import dev.thymian.intellijplugin.settings.ThymianSettings
+import dev.thymian.plugin.settings.ThymianSettings
 import io.ktor.client.*
 import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.websocket.*

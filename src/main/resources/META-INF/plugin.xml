@@ -1,6 +1,6 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-  <id>dev.thymian.intellijplugin</id>
+  <id>dev.thymian.plugin</id>
   <name>Thymian</name>
   <vendor>qupaya technologies GmbH</vendor>
   <category>Microservices</category>
@@ -17,30 +17,30 @@
 
   <actions>
     <action id="ThymianEndpointsRunCheckAction"
-            class="dev.thymian.intellijplugin.endpoints.ThymianEndpointsRunCheckAction"
-            icon="dev.thymian.intellijplugin.ThymianIcons.Action">
+            class="dev.thymian.plugin.endpoints.ThymianEndpointsRunCheckAction"
+            icon="dev.thymian.plugin.ThymianIcons.Action">
       <add-to-group group-id="EndpointsActions.ContextMenu"/>
     </action>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
     <applicationService
-        serviceInterface="dev.thymian.intellijplugin.cli.ThymianCLISessionManager"
-        serviceImplementation="dev.thymian.intellijplugin.cli.SequentialThymianCLISessionManager"/>
+        serviceInterface="dev.thymian.plugin.cli.ThymianCLISessionManager"
+        serviceImplementation="dev.thymian.plugin.cli.SequentialThymianCLISessionManager"/>
 
     <microservices.endpointsSidePanelProvider
-        implementation="dev.thymian.intellijplugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
+        implementation="dev.thymian.plugin.endpoints.ThymianEndpointsSidePanel$Provider"/>
 
     <!-- Run -->
-    <!--    <configurationType implementation="dev.thymian.intellijplugin.run.ThymianRunConfigurationType"/>-->
+    <!--    <configurationType implementation="dev.thymian.plugin.run.ThymianRunConfigurationType"/>-->
 
     <!-- Settings -->
     <applicationConfigurable
-        instance="dev.thymian.intellijplugin.settings.ThymianSettingsConfigurable"
-        id="dev.thymian.intellijplugin.settings"
+        instance="dev.thymian.plugin.settings.ThymianSettingsConfigurable"
+        id="dev.thymian.plugin.settings"
         displayName="Thymian"
         parentId="tools"/>
 
-    <applicationService serviceImplementation="dev.thymian.intellijplugin.settings.ThymianSettings"/>
+    <applicationService serviceImplementation="dev.thymian.plugin.settings.ThymianSettings"/>
   </extensions>
 </idea-plugin>
