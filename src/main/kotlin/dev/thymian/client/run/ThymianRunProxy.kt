@@ -1,4 +1,4 @@
-package dev.thymian.plugin.run
+package dev.thymian.client.run
 
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.microservices.endpoints.API_DEFINITION_TYPE
@@ -15,7 +15,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.swagger.core.synthetic.generateOasDraft
 import com.intellij.util.application
-import dev.thymian.plugin.cli.*
+import dev.thymian.client.cli.*
 import java.util.concurrent.CompletableFuture
 
 private class ProjectFilter(project: Project) : SearchScopeEndpointsFilter {

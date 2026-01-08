@@ -1,4 +1,4 @@
-package dev.thymian.plugin.cli
+package dev.thymian.client.cli
 
 class ActionListener<S : ActionResultMessage<T>, T : Any>(
     private val onResult: (S) -> Unit,

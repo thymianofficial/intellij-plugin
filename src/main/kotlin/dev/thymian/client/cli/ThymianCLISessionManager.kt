@@ -1,4 +1,4 @@
-package dev.thymian.plugin.cli
+package dev.thymian.client.cli
 
 import com.intellij.openapi.application.ApplicationManager
 import java.util.concurrent.CompletableFuture
