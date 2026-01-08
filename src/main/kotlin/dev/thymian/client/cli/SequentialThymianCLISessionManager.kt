@@ -1,7 +1,7 @@
-package dev.thymian.plugin.cli
+package dev.thymian.client.cli
 
 import com.intellij.openapi.Disposable
-import dev.thymian.plugin.settings.ThymianSettings
+import dev.thymian.client.settings.ThymianSettings
 import kotlinx.coroutines.CoroutineScope
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture

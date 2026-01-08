@@ -1,10 +1,10 @@
-package dev.thymian.plugin.endpoints
+package dev.thymian.client.endpoints
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformCoreDataKeys
-import dev.thymian.plugin.ThymianBundle
+import dev.thymian.client.ThymianBundle
 
 class ThymianEndpointsRunCheckAction : AnAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT

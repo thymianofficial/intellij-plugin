@@ -1,11 +1,11 @@
-package dev.thymian.plugin.run
+package dev.thymian.client.run
 
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.openapi.application.ReadAction
 import com.intellij.util.application
-import dev.thymian.plugin.cli.ThymianCLI
-import dev.thymian.plugin.cli.ThymianCLISessionManager
+import dev.thymian.client.cli.ThymianCLI
+import dev.thymian.client.cli.ThymianCLISessionManager
 import java.util.concurrent.CompletableFuture
 
 internal class ThymianRunProcessHandler(

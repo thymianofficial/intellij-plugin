@@ -1,4 +1,4 @@
-package dev.thymian.plugin.run
+package dev.thymian.client.run
 
 import com.intellij.microservices.endpoints.EndpointsElementItem
 import com.intellij.microservices.endpoints.EndpointsProvider

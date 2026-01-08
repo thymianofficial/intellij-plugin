@@ -1,4 +1,4 @@
-package dev.thymian.plugin.run
+package dev.thymian.client.run
 
 import com.intellij.execution.Executor
 import com.intellij.execution.configurations.ConfigurationFactory
@@ -8,7 +8,7 @@ import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
-import dev.thymian.plugin.ThymianBundle
+import dev.thymian.client.ThymianBundle
 import org.jdom.Element
 
 class ThymianRunConfiguration(project: Project, factory: ConfigurationFactory) :

@@ -1,10 +1,10 @@
-package dev.thymian.plugin.run
+package dev.thymian.client.run
 
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import dev.thymian.plugin.ThymianBundle
+import dev.thymian.client.ThymianBundle
 import javax.swing.JComponent
 
 class ThymianRunConfigurationEditor : SettingsEditor<ThymianRunConfiguration>() {

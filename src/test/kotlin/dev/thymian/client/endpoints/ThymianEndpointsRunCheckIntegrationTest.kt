@@ -1,4 +1,4 @@
-package dev.thymian.plugin.endpoints
+package dev.thymian.client.endpoints
 
 import com.intellij.microservices.endpoints.*
 import com.intellij.navigation.ItemPresentation
@@ -12,7 +12,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.application
 import com.jetbrains.fus.reporting.serialization.toJsonElement
-import dev.thymian.plugin.cli.*
+import dev.thymian.client.cli.*
 import java.util.concurrent.CompletableFuture
 
 class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {

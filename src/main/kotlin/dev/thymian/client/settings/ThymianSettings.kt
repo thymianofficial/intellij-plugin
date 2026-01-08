@@ -1,4 +1,4 @@
-package dev.thymian.plugin.settings
+package dev.thymian.client.settings
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
