@@ -23,13 +23,16 @@ data class Register(
     val type = "register"
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
+@JsonIgnoreUnknownKeys
 data class RegisterResponse(
     val type: String,
     val ok: Boolean,
     val config: Configuration
 ) {
     @Serializable
+    @JsonIgnoreUnknownKeys
     data class Configuration(
         val feature: Boolean? = null,
         val threshold: Int? = 0
@@ -143,6 +146,7 @@ sealed interface Receiving {
 
     @Serializable
     @SerialName("emitActionResult")
+    @JsonIgnoreUnknownKeys
     data class ActionResultMessageWrapper(
         val correlationId: String,
         val name: String,
@@ -167,6 +171,7 @@ sealed interface Receiving {
 
     @Serializable
     @SerialName("emitActionError")
+    @JsonIgnoreUnknownKeys
     data class ActionErrorMessage(
         val correlationId: String,
         val name: String,
@@ -180,20 +185,25 @@ sealed interface ActionResultMessage<T : Any> {
     val name: String
     val payload: T
 
+    @OptIn(ExperimentalSerializationApi::class)
     @Serializable
+    @JsonIgnoreUnknownKeys
     data class OpenAPITransformResponse(
         override val correlationId: String,
         override val name: String,
         override val payload: JsonElement,
     ) : ActionResultMessage<JsonElement>
 
+    @OptIn(ExperimentalSerializationApi::class)
     @Serializable
+    @JsonIgnoreUnknownKeys
     data class HttpLinterLintStaticResponse(
         override val correlationId: String,
         override val name: String,
         override val payload: List<Payload>,
     ) : ActionResultMessage<List<HttpLinterLintStaticResponse.Payload>> {
         @Serializable
+        @JsonIgnoreUnknownKeys
         data class Payload(
             val reports: List<ThymianReport>,
             val valid: Boolean,
