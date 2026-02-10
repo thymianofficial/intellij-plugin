@@ -11,8 +11,9 @@ import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.application
-import com.jetbrains.fus.reporting.serialization.toJsonElement
+import dev.thymian.client.ThymianIcons
 import dev.thymian.client.cli.*
+import kotlinx.serialization.json.Json
 import java.util.concurrent.CompletableFuture
 
 class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
@@ -45,7 +46,9 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
         try {
             val editorFactory = com.intellij.openapi.editor.EditorFactory.getInstance()
             editorFactory.allEditors.forEach { editor ->
-                editorFactory.releaseEditor(editor)
+                if (!editor.isDisposed) {
+                    editorFactory.releaseEditor(editor)
+                }
             }
         } finally {
             super.tearDown()
@@ -111,7 +114,7 @@ paths:
     }
 
     val endpointsProvider = object : EndpointsProvider<Group, Endpoint> {
-        override val presentation = FrameworkPresentation("", "Test Endpoints Provider", null)
+        override val presentation = FrameworkPresentation("ThymianTest", "Test Endpoints Provider", null)
         override val endpointType = API_DEFINITION_TYPE
 
         override fun getEndpointGroups(project: Project, filter: EndpointsFilter) =
@@ -147,7 +150,7 @@ paths:
                     return "$group:$endpoint"
                 }
 
-                override fun getIcon(p0: Boolean) = null
+                override fun getIcon(p0: Boolean) = ThymianIcons.Action
             }
         }
     }
@@ -202,7 +205,7 @@ private class TestThymianCLI : ThymianCLI {
                 ActionResultMessage.OpenAPITransformResponse(
                     correlationId = action.id,
                     name = "openapi.transform",
-                    payload = "{}".toJsonElement()
+                    payload = Json.decodeFromString("{}")
                 )
             )
 
