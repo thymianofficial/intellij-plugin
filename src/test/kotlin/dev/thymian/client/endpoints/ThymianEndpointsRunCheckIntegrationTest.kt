@@ -3,15 +3,16 @@ package dev.thymian.client.endpoints
 import com.intellij.microservices.endpoints.*
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.testFramework.ExtensionTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.application
-import dev.thymian.client.ThymianIcons
 import dev.thymian.client.cli.*
 import kotlinx.serialization.json.Json
 import java.util.concurrent.CompletableFuture
@@ -34,7 +35,7 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
         application.replaceService(
             ThymianCLISessionManager::class.java,
             object : ThymianCLISessionManager {
-                override fun getThymianCLI(): CompletableFuture<ThymianCLI> {
+                override fun getThymianCLI(project: Project): CompletableFuture<ThymianCLI> {
                     return CompletableFuture.completedFuture(testCli)
                 }
             },
@@ -44,7 +45,7 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            val editorFactory = com.intellij.openapi.editor.EditorFactory.getInstance()
+            val editorFactory = EditorFactory.getInstance()
             editorFactory.allEditors.forEach { editor ->
                 if (!editor.isDisposed) {
                     editorFactory.releaseEditor(editor)
@@ -70,7 +71,7 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
         action.actionPerformed(event)
 
         while (!testCli.initialized) {
-            com.intellij.testFramework.PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
             Thread.sleep(100)
         }
 
@@ -150,7 +151,7 @@ paths:
                     return "$group:$endpoint"
                 }
 
-                override fun getIcon(p0: Boolean) = ThymianIcons.Action
+                override fun getIcon(p0: Boolean) = null
             }
         }
     }

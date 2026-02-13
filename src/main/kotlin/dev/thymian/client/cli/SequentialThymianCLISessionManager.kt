@@ -1,6 +1,7 @@
 package dev.thymian.client.cli
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
 import dev.thymian.client.settings.ThymianSettings
 import kotlinx.coroutines.CoroutineScope
 import java.util.concurrent.CancellationException
@@ -14,11 +15,11 @@ internal class SequentialThymianCLISessionManager(
     private var tailClose: CompletableFuture<*> = CompletableFuture.completedFuture(Unit)
     private val pendingRequests = mutableListOf<ThymianCLISession>()
 
-    override fun getThymianCLI(): CompletableFuture<ThymianCLI> {
+    override fun getThymianCLI(project: Project): CompletableFuture<ThymianCLI> {
         val settings = ThymianSettings.getInstance().state
 
         val session = ThymianCLIAdapter(settings, cs)
-            .let { ThymianCLILocalRunner(it, settings, cs) }
+            .let { ThymianCLILocalRunner(it, project, settings, cs) }
             .let { ThymianCLISession(it) }
 
         addSession(session)

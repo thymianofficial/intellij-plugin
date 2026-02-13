@@ -44,7 +44,8 @@ class ThymianRunState(
             environment.executor
         )
         val console = SMTestRunnerConnectionUtil.createConsole(properties)
-        val processHandler = ThymianRunProcessHandler(console.resultsViewer.testsRootNode, runProxies)
+        val processHandler =
+            ThymianRunProcessHandler(environment.project, console.resultsViewer.testsRootNode, runProxies)
         console.attachToProcess(processHandler)
 
         return DefaultExecutionResult(

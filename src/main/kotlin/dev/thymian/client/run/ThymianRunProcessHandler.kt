@@ -3,12 +3,14 @@ package dev.thymian.client.run
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.testframework.sm.runner.SMTestProxy
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.project.Project
 import com.intellij.util.application
 import dev.thymian.client.cli.ThymianCLI
 import dev.thymian.client.cli.ThymianCLISessionManager
 import java.util.concurrent.CompletableFuture
 
 internal class ThymianRunProcessHandler(
+    private val project: Project,
     private val rootNode: SMTestProxy.SMRootTestProxy,
     private val runProxies: Sequence<ThymianRunProxy<*, *>>
 ) : ProcessHandler() {
@@ -32,7 +34,7 @@ internal class ThymianRunProcessHandler(
 
             val validRunProxies = prepare()
 
-            ThymianCLISessionManager.getInstance().getThymianCLI()
+            ThymianCLISessionManager.getInstance().getThymianCLI(project)
                 .thenCompose { thymianCLI ->
                     this.thymianCLI = thymianCLI
                     thymianCLI.initialize { rootNode.addStdOutput("$it\n") }
