@@ -19,7 +19,7 @@ fun runEndpointCheck(project: Project, items: List<EndpointsElementItem<*, *>>) 
     val factory = configurationType.configurationFactories.first()
 
     val runManager = RunManager.getInstance(project)
-    val runConfiguration = ThymianRunConfiguration(project, factory)
+    val runConfiguration = configurationType.createTemplateConfiguration(project) as ThymianRunConfiguration
     runConfiguration.runSettings = ThymianRunSettings(
         endpoints = items
     )
