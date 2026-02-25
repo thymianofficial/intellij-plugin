@@ -109,6 +109,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
                 result.complete(Unit)
                 testSet.smTestProxy.setFinished()
                 testSet.smTestProxy.setTestFailed(errorMessage.error.message, null, true)
+                smTestProxy.setTestFailed(null, null, false)
             }
         }
 
