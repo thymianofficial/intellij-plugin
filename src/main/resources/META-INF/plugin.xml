@@ -10,7 +10,6 @@
     <plugin id="com.intellij.modules.microservices"/>
     <plugin id="com.intellij.swagger"/>
     <module name="intellij.libraries.ktor.client"/>
-    <module name="intellij.microservices.backend"/>
   </dependencies>
 
   <resource-bundle>messages.ThymianBundle</resource-bundle>
