@@ -117,7 +117,7 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             val executions = lintResult.payload.runs.flatMap { it.executions ?: emptyList() }
             val failedExecutions = executions.filter { it.status.kind == "failed" }
             val report = failedExecutions.joinToString("\n\n") { execution ->
-                val severity = execution.status.severity ?: "error"
+                val severity = execution.status.severity ?: "finding"
                 val detail = execution.findings
                     ?.takeIf { it.isNotEmpty() }
                     ?.joinToString("\n") { finding ->
