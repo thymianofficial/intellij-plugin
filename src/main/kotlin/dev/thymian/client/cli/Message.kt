@@ -82,23 +82,23 @@ sealed class EmitActionMessage {
     )
 
     @Serializable
-    @SerialName("openapi.transform")
-    data class OpenAPITransform(
+    @SerialName("core.workflow.lint")
+    data class CoreWorkflowLint(
         val payload: Payload
     ) : EmitActionMessage() {
 
         @Serializable
-        class Payload(val content: String)
-    }
-
-    @Serializable
-    @SerialName("http-linter.lint-static")
-    data class HttpLinterLintStatic(
-        val payload: Payload
-    ) : EmitActionMessage() {
+        data class Payload(
+            val specification: List<Specification>,
+            val rules: List<String> = emptyList(),
+            val validateSpecs: Boolean = false,
+        )
 
         @Serializable
-        class Payload(val format: JsonElement)
+        data class Specification(
+            val type: String,
+            val location: String,
+        )
     }
 }
 
@@ -153,13 +153,7 @@ sealed interface Receiving {
         val payload: JsonElement,
     ) : Receiving {
         fun toTypedMessage(): ActionResultMessage<*> = when (name) {
-            "openapi.transform" -> ActionResultMessage.OpenAPITransformResponse(
-                correlationId = correlationId,
-                name = name,
-                payload = payload
-            )
-
-            "http-linter.lint-static" -> ActionResultMessage.HttpLinterLintStaticResponse(
+            "core.workflow.lint" -> ActionResultMessage.CoreWorkflowLintResponse(
                 correlationId = correlationId,
                 name = name,
                 payload = Json.decodeFromJsonElement(payload)
@@ -188,38 +182,73 @@ sealed interface ActionResultMessage<T : Any> {
     @OptIn(ExperimentalSerializationApi::class)
     @Serializable
     @JsonIgnoreUnknownKeys
-    data class OpenAPITransformResponse(
+    data class CoreWorkflowLintResponse(
         override val correlationId: String,
         override val name: String,
-        override val payload: JsonElement,
-    ) : ActionResultMessage<JsonElement>
-
-    @OptIn(ExperimentalSerializationApi::class)
-    @Serializable
-    @JsonIgnoreUnknownKeys
-    data class HttpLinterLintStaticResponse(
-        override val correlationId: String,
-        override val name: String,
-        override val payload: List<Payload>,
-    ) : ActionResultMessage<List<HttpLinterLintStaticResponse.Payload>> {
-        @Serializable
-        @JsonIgnoreUnknownKeys
-        data class Payload(
-            val reports: List<ThymianReport>,
-            val valid: Boolean,
-        )
-
-        @OptIn(ExperimentalSerializationApi::class)
-        @Serializable
-        @JsonIgnoreUnknownKeys
-        data class ThymianReport(
-            val title: String,
-            val summary: String,
-            val severity: String,
-            val category: String?
-        )
-    }
+        override val payload: Report,
+    ) : ActionResultMessage<Report>
 }
+
+/* *****************************************
+ * Report (core.workflow.lint response payload)
+ * *****************************************/
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class Report(
+    val reportId: String,
+    val createdAt: String,
+    val runs: List<ToolRun>,
+    val thymianFormat: JsonElement? = null,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class ToolRun(
+    val runId: String,
+    val runType: String,
+    val runAt: String,
+    val executions: List<Execution>? = null,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class Execution(
+    val kind: String,
+    val ruleId: String? = null,
+    val status: ExecutionStatus,
+    val findings: List<Finding>? = null,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class ExecutionStatus(
+    val kind: String,
+    val reason: String? = null,
+    val severity: String? = null,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class Finding(
+    val id: String,
+    val kind: String,
+    val title: String,
+    val message: FindingMessage? = null,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class FindingMessage(
+    val text: String,
+    val markdown: String? = null,
+)
 
 /* *****************************************
  * Payloads

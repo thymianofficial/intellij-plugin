@@ -36,8 +36,9 @@ internal class ThymianCLILocalRunner(
             .command(
                 command,
                 "serve",
+                "--rule-severity=hint",
                 "-o",
-                "@thymian/websocket-proxy.port=${settings.websocketPort}"
+                "@thymian/plugin-websocket-proxy.port=${settings.websocketPort}"
             )
         messageListener("Starting Thymian CLI process: ${builder.command()}")
         cliProcess = builder.start()

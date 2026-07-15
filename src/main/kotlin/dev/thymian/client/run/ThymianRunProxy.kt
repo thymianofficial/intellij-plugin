@@ -113,17 +113,26 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             }
         }
 
-        fun handleLintingResult(lintResult: ActionResultMessage.HttpLinterLintStaticResponse) {
-            val report = lintResult.payload
-                .flatMap { it.reports }
-                .joinToString("\n\n") { "${it.severity}: ${it.title} (${it.category})\n${it.summary}" }
-            val isFailed = lintResult.payload.any { !it.valid }
+        fun handleLintingResult(lintResult: ActionResultMessage.CoreWorkflowLintResponse) {
+            val executions = lintResult.payload.runs.flatMap { it.executions ?: emptyList() }
+            val failedExecutions = executions.filter { it.status.kind == "failed" }
+            val report = failedExecutions.joinToString("\n\n") { execution ->
+                val severity = execution.status.severity ?: "finding"
+                val detail = execution.findings
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.joinToString("\n") { finding ->
+                        finding.title + (finding.message?.text?.let { ": $it" } ?: "")
+                    }
+                    ?: execution.status.reason.orEmpty()
+                "$severity: ${execution.ruleId.orEmpty()}\n$detail"
+            }
+            val isFailed = failedExecutions.isNotEmpty()
 
             application.invokeLater {
                 result.complete(Unit)
                 with(testSet.smTestProxy) {
                     addStdOutput(report)
-                    addStdOutput("Done\n")
+                    addStdOutput("\n\nDone\n")
                     setFinished()
                     if (isFailed) {
                         setTestFailed("Linting found issues", null, false)
@@ -133,26 +142,22 @@ internal class ThymianRunProxy<G : Any, E : Any>(
             }
         }
 
-        fun lintTransformResult(transformResult: ActionResultMessage.OpenAPITransformResponse) {
-            thymianCLI.sendAction(
-                EmitActionMessage.HttpLinterLintStatic(
-                    EmitActionMessage.HttpLinterLintStatic.Payload(transformResult.payload)
+        val lintMessage = EmitActionMessage.CoreWorkflowLint(
+            EmitActionMessage.CoreWorkflowLint.Payload(
+                specification = listOf(
+                    EmitActionMessage.CoreWorkflowLint.Specification(type = "openapi", location = oasDraft)
                 ),
-                ActionListener<ActionResultMessage.HttpLinterLintStaticResponse, _>(
-                    onResult = ::handleLintingResult,
-                    onError = ::handleError
+                rules = listOf(
+                    "@thymian/rules-rfc-9110",
+                    "@thymian/rules-api-description-validation"
                 )
             )
-        }
-
-        val transformMessage = EmitActionMessage.OpenAPITransform(
-            EmitActionMessage.OpenAPITransform.Payload(oasDraft)
         )
-        transformMessage.options = EmitActionMessage.Options(timeout = 10000, strategy = "first")
+        lintMessage.options = EmitActionMessage.Options(timeout = 60000, strategy = "first")
         thymianCLI.sendAction(
-            transformMessage,
-            ActionListener<ActionResultMessage.OpenAPITransformResponse, _>(
-                onResult = ::lintTransformResult,
+            lintMessage,
+            ActionListener<ActionResultMessage.CoreWorkflowLintResponse, _>(
+                onResult = ::handleLintingResult,
                 onError = ::handleError
             )
         )

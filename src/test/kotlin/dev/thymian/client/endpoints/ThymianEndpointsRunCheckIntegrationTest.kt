@@ -12,7 +12,6 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.application
 import dev.thymian.client.cli.*
-import kotlinx.serialization.json.Json
 import java.util.concurrent.CompletableFuture
 
 class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
@@ -77,12 +76,14 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
 //        testCli.completionFuture.join()
 //
 //        val actions = testCli.completionFuture.get()
-//        assertEquals(2, actions.size)
+//        assertEquals(1, actions.size)
 //        actions[0].let {
-//            assertTrue(it is EmitActionMessage.OpenAPITransform)
-//            assertEquals(testEndpoints.fileContent, (it as EmitActionMessage.OpenAPITransform).payload.content)
+//            assertTrue(it is EmitActionMessage.CoreWorkflowLint)
+//            assertEquals(
+//                testEndpoints.fileContent,
+//                (it as EmitActionMessage.CoreWorkflowLint).payload.specification.single().location
+//            )
 //        }
-//        assertTrue(actions[1] is EmitActionMessage.HttpLinterLintStatic)
     }
 }
 
@@ -201,23 +202,14 @@ private class TestThymianCLI : ThymianCLI {
         }
 
         when (action) {
-            is EmitActionMessage.OpenAPITransform -> listener.handleResult(
-                ActionResultMessage.OpenAPITransformResponse(
+            is EmitActionMessage.CoreWorkflowLint -> listener.handleResult(
+                ActionResultMessage.CoreWorkflowLintResponse(
                     correlationId = action.id,
-                    name = "openapi.transform",
-                    payload = Json.decodeFromString("{}")
-                )
-            )
-
-            is EmitActionMessage.HttpLinterLintStatic -> listener.handleResult(
-                ActionResultMessage.HttpLinterLintStaticResponse(
-                    correlationId = action.id,
-                    name = "http-linter.lint-static",
-                    payload = listOf(
-                        ActionResultMessage.HttpLinterLintStaticResponse.Payload(
-                            valid = true,
-                            reports = emptyList()
-                        )
+                    name = "core.workflow.lint",
+                    payload = Report(
+                        reportId = "test-report",
+                        createdAt = "1970-01-01T00:00:00.000Z",
+                        runs = emptyList()
                     )
                 )
             )
