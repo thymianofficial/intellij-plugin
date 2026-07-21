@@ -24,7 +24,7 @@ internal class ThymianCLIAdapter(private val settings: ThymianSettings.State, pr
     private var client: HttpClient? = null
     private var websocketSession: WebSocketSession? = null
     private lateinit var initFuture: CompletableFuture<Unit>
-    private lateinit var listenJob: Job
+    private var listenJob: Job? = null
 
     private val actionResponseListeners = mutableMapOf<String, ActionListener<*, *>>()
 
@@ -132,7 +132,7 @@ internal class ThymianCLIAdapter(private val settings: ThymianSettings.State, pr
     }
 
     override fun close() = cs.launch {
-        listenJob.cancelAndJoinSilently()
+        listenJob?.cancelAndJoinSilently()
         websocketSession?.close(CloseReason(CloseReason.Codes.NORMAL, "Normal close"))
         websocketSession = null
         client?.close()

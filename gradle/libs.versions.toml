@@ -2,7 +2,8 @@
 # libraries
 junit = "4.13.2"
 opentest4j = "1.3.0"
-ktor = "3.5.1"
+# Ktor use is not covered by tests yet. Always manually check if everything works, because this version needs to match the internal IntelliJ version
+ktor = "3.4.1"
 serialization = "1.11.0"
 
 # plugins
