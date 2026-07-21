@@ -2,12 +2,14 @@ package dev.thymian.client.endpoints
 
 import com.intellij.microservices.endpoints.*
 import com.intellij.navigation.ItemPresentation
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.testFramework.ExtensionTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.application
@@ -54,36 +56,35 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
     }
 
     fun `test running a complete check against the CLI`() {
-        // commented until fix of youtrack.jetbrains.com/issue/IDEA-385865/JSVG-version-issue-using-BasePlatformTestCase-with-Microservice-Plugin
-//        val dataContext = DataContext { key ->
-//            when (key) {
-//                PlatformCoreDataKeys.SELECTED_ITEMS.name -> testEndpoints.items.toTypedArray()
-//                CommonDataKeys.PROJECT.name -> project
-//                else -> null
-//            }
-//        }
-//
-//        val action = ThymianEndpointsRunCheckAction()
-//        val event = AnActionEvent.createEvent(dataContext, null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null)
-//
-//        action.actionPerformed(event)
-//
-//        while (!testCli.initialized) {
-//            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
-//            Thread.sleep(100)
-//        }
-//
-//        testCli.completionFuture.join()
-//
-//        val actions = testCli.completionFuture.get()
-//        assertEquals(1, actions.size)
-//        actions[0].let {
-//            assertTrue(it is EmitActionMessage.CoreWorkflowLint)
-//            assertEquals(
-//                testEndpoints.fileContent,
-//                (it as EmitActionMessage.CoreWorkflowLint).payload.specification.single().location
-//            )
-//        }
+        val dataContext = DataContext { key ->
+            when (key) {
+                PlatformCoreDataKeys.SELECTED_ITEMS.name -> testEndpoints.items.toTypedArray()
+                CommonDataKeys.PROJECT.name -> project
+                else -> null
+            }
+        }
+
+        val action = ThymianEndpointsRunCheckAction()
+        val event = AnActionEvent.createEvent(dataContext, null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null)
+
+        action.actionPerformed(event)
+
+        while (!testCli.initialized) {
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            Thread.sleep(100)
+        }
+
+        testCli.completionFuture.join()
+
+        val actions = testCli.completionFuture.get()
+        assertEquals(1, actions.size)
+        actions[0].let {
+            assertTrue(it is EmitActionMessage.CoreWorkflowLint)
+            assertEquals(
+                testEndpoints.fileContent,
+                (it as EmitActionMessage.CoreWorkflowLint).payload.specification.single().location
+            )
+        }
     }
 }
 
