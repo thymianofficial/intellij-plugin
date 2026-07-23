@@ -161,6 +161,7 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
         val future = proxy.runTest(cli)
         while (!future.isDone) {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            Thread.sleep(10)
         }
         future.get()
 

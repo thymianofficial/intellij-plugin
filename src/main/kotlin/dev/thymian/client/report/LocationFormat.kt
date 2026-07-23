@@ -95,14 +95,20 @@ private fun isHttpRequest(attributes: GraphNodeAttributes) = attributes.type == 
 private fun isHttpResponse(attributes: GraphNodeAttributes) = attributes.type == "http-response"
 
 private fun thymianRequestToString(attributes: GraphNodeAttributes): String {
-    val title = "${attributes.method.orEmpty().uppercase()} ${attributes.path.orEmpty()}"
+    val title = listOfNotNull(
+        attributes.method?.uppercase()?.ifEmpty { null },
+        attributes.path?.ifEmpty { null },
+    ).joinToString(" ")
     return if (!attributes.mediaType.isNullOrEmpty()) "$title - ${attributes.mediaType}" else title
 }
 
 private fun thymianResponseToString(attributes: GraphNodeAttributes): String {
     val statusCode = attributes.statusCode
     val phrase = statusCode?.let { httpStatusCodeToPhrase[it] }.orEmpty()
-    val title = "${statusCode?.toString().orEmpty()} ${phrase.uppercase()}"
+    val title = listOfNotNull(
+        statusCode?.toString(),
+        phrase.uppercase().ifEmpty { null },
+    ).joinToString(" ")
     return if (!attributes.mediaType.isNullOrEmpty()) "$title - ${attributes.mediaType}" else title
 }
 
