@@ -8,6 +8,7 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
+import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.progress.ProgressManager
@@ -25,27 +26,32 @@ class ThymianRunState(
         executor: Executor?,
         runner: ProgramRunner<*>
     ): ExecutionResult {
-        // If things like the Spring controller tooling are not initialized yet, we must read the endpoints
-        // wrapped in synchronous processing, because we trigger the initialization.
-        // If we don't wrap it, things will crash.
-        val runProxies = ProgressManager.getInstance().runProcessWithProgressSynchronously(ThrowableComputable {
-            ReadAction.compute<Sequence<ThymianRunProxy<*, *>>, Throwable> {
-                if (configuration.runSettings.sortedEndpoints.isEmpty()) {
-                    getRunProxiesFromProviders()
-                } else {
-                    getRunProxiesFromEndpoints(configuration.runSettings.sortedEndpoints)
-                }
-            }
-        }, "", true, null)
-
+        // The console/results form must exist before we build run proxies, since each proxy
+        // needs a reference to it to notify the SM tree of nodes it adds later (see
+        // ThymianRunProxy — merely mutating SMTestProxy doesn't refresh the visible tree).
         val properties = SMTRunnerConsoleProperties(
             configuration,
             ThymianBundle.message("runConfiguration.name"),
             environment.executor
         )
         val console = SMTestRunnerConnectionUtil.createConsole(properties)
+        val resultsViewer = console.resultsViewer
+
+        // If things like the Spring controller tooling are not initialized yet, we must read the endpoints
+        // wrapped in synchronous processing, because we trigger the initialization.
+        // If we don't wrap it, things will crash.
+        val runProxies = ProgressManager.getInstance().runProcessWithProgressSynchronously(ThrowableComputable {
+            ReadAction.computeBlocking<Sequence<ThymianRunProxy<*, *>>, Throwable> {
+                if (configuration.runSettings.sortedEndpoints.isEmpty()) {
+                    getRunProxiesFromProviders(resultsViewer)
+                } else {
+                    getRunProxiesFromEndpoints(configuration.runSettings.sortedEndpoints, resultsViewer)
+                }
+            }
+        }, "", true, null)
+
         val processHandler =
-            ThymianRunProcessHandler(environment.project, console.resultsViewer.testsRootNode, runProxies)
+            ThymianRunProcessHandler(environment.project, resultsViewer.testsRootNode, runProxies)
         console.attachToProcess(processHandler)
 
         return DefaultExecutionResult(
@@ -54,18 +60,21 @@ class ThymianRunState(
         )
     }
 
-    private fun getRunProxiesFromProviders(): Sequence<ThymianRunProxy<*, *>> {
+    private fun getRunProxiesFromProviders(resultsViewer: SMTestRunnerResultsForm): Sequence<ThymianRunProxy<*, *>> {
         return EndpointsProvider.getAvailableProviders(project)
             .filter { it.isUsable() }
-            .map { endpointProvider -> ThymianRunProxy(project, endpointProvider) }
+            .map { endpointProvider -> ThymianRunProxy(project, endpointProvider, resultsViewer) }
     }
 
     private fun EndpointsProvider<*, *>.isUsable(): Boolean {
         return getStatus(project) != EndpointsProvider.Status.UNAVAILABLE
     }
 
-    private fun getRunProxiesFromEndpoints(endpoints: List<ThymianRunSettings.SortedEndpoints<*, *>>): Sequence<ThymianRunProxy<*, *>> {
-        return endpoints.map { ThymianRunProxy(project, it) }
+    private fun getRunProxiesFromEndpoints(
+        endpoints: List<ThymianRunSettings.SortedEndpoints<*, *>>,
+        resultsViewer: SMTestRunnerResultsForm
+    ): Sequence<ThymianRunProxy<*, *>> {
+        return endpoints.map { ThymianRunProxy(project, it, resultsViewer) }
             .asSequence()
     }
 }

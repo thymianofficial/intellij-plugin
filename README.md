@@ -38,7 +38,9 @@ Check out the [Thymian CLI website](https://thymian.dev) for more information.
 
 ## Requirements
 
-Have the Thymian CLI installed on your local machine.
+Node.js® and npm need to be installed on your machine. Additionally, you can have either the plugin use Thymian via
+`npx --yes thymian@latest` or you install the Thymian CLI on your local machine and set the path to the `run.js` in the
+settings.
 
 ## How to use
 
@@ -51,8 +53,8 @@ check on the selected endpoint.
 
 ## Notes
 
-It's not possible to check a single endpoint for API specification files like an OpenAPI specification yaml or json
-file. Triggering the check on a single endpoint will check the whole API specification.
+At the moment, it's not possible to check a single endpoint for API specification files like an OpenAPI specification
+yaml or json file. Triggering the check on a single endpoint will check the whole API specification.
 
 <!-- Plugin description end -->
 
