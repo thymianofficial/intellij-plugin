@@ -200,7 +200,7 @@ data class Report(
     val reportId: String,
     val createdAt: String,
     val runs: List<ToolRun>,
-    val thymianFormat: JsonElement? = null,
+    val thymianFormat: Map<String, SerializedThymianFormat>? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -211,6 +211,8 @@ data class ToolRun(
     val runType: String,
     val runAt: String,
     val executions: List<Execution>? = null,
+    val thymianFormatVersion: String? = null,
+    val rules: List<RuleDescriptor>? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -221,6 +223,7 @@ data class Execution(
     val ruleId: String? = null,
     val status: ExecutionStatus,
     val findings: List<Finding>? = null,
+    val location: Location? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -230,6 +233,7 @@ data class ExecutionStatus(
     val kind: String,
     val reason: String? = null,
     val severity: String? = null,
+    val durationMilliseconds: Double? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -240,6 +244,8 @@ data class Finding(
     val kind: String,
     val title: String,
     val message: FindingMessage? = null,
+    val expected: JsonElement? = null,
+    val actual: JsonElement? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -248,6 +254,118 @@ data class Finding(
 data class FindingMessage(
     val text: String,
     val markdown: String? = null,
+)
+
+/**
+ * Metadata describing a rule known to a tool run. Mirrors `RuleDescriptor` from
+ * `packages/core/src/report/report.ts`; only the fields the renderer needs are modeled.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class RuleDescriptor(
+    val id: String,
+    val name: String? = null,
+    val summary: FindingMessage? = null,
+    val description: FindingMessage? = null,
+    val severity: String? = null,
+)
+
+/**
+ * Subject/location of an execution. Mirrors the `Location` discriminated union from
+ * `packages/core/src/report/report.ts`. `thymianFormat` locations are references into the
+ * corresponding entry of `Report.thymianFormat` and must be resolved via `LocationFormat`.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonClassDiscriminator("type")
+sealed interface Location {
+    @Serializable
+    @SerialName("thymianFormat")
+    @JsonIgnoreUnknownKeys
+    data class ThymianFormatLocation(
+        val elementType: String,
+        val elementId: String,
+        val pointer: String = "",
+    ) : Location
+
+    @Serializable
+    @SerialName("url")
+    @JsonIgnoreUnknownKeys
+    data class UrlLocation(
+        val url: String,
+    ) : Location
+
+    @Serializable
+    @SerialName("file")
+    @JsonIgnoreUnknownKeys
+    data class FileLocation(
+        val path: String,
+        val line: Int? = null,
+        val column: Int? = null,
+    ) : Location
+
+    @Serializable
+    @SerialName("custom")
+    @JsonIgnoreUnknownKeys
+    data class CustomLocation(
+        val value: String,
+    ) : Location
+}
+
+/* *****************************************
+ * Serialized ThymianFormat graph (Report.thymianFormat entries)
+ *
+ * Mirrors the graphology `SerializedGraph` shape produced by `ThymianFormat.export()`
+ * (`packages/core/src/format/thymian-format.ts`): a flat list of nodes/edges keyed by id.
+ * Only the node/edge attributes needed to resolve `thymianFormat` locations to HTTP
+ * request/response strings are modeled; everything else is ignored on decode.
+ * *****************************************/
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class SerializedThymianFormat(
+    val nodes: List<SerializedNode> = emptyList(),
+    val edges: List<SerializedEdge> = emptyList(),
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class SerializedNode(
+    val key: String,
+    val attributes: GraphNodeAttributes,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class SerializedEdge(
+    val key: String,
+    val source: String,
+    val target: String,
+    val attributes: GraphEdgeAttributes? = null,
+)
+
+/** `ThymianNode` attributes, restricted to `http-request`/`http-response` fields. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class GraphNodeAttributes(
+    val type: String? = null,
+    val method: String? = null,
+    val path: String? = null,
+    val mediaType: String? = null,
+    val statusCode: Int? = null,
+)
+
+/** `ThymianEdge` attributes, e.g. `http-transaction`. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+@JsonIgnoreUnknownKeys
+data class GraphEdgeAttributes(
+    val type: String? = null,
 )
 
 /* *****************************************

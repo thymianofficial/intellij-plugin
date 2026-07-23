@@ -16,7 +16,7 @@ internal class ThymianRunProcessHandler(
 ) : ProcessHandler() {
     private var thymianCLI: ThymianCLI? = null
 
-    private fun prepare() = ReadAction.compute<List<ThymianRunProxy<*, *>>, Throwable> {
+    private fun prepare() = ReadAction.computeBlocking<List<ThymianRunProxy<*, *>>, Throwable> {
         runProxies
             .onEach { it.initialize() }
             .toList()

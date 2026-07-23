@@ -1,5 +1,13 @@
 package dev.thymian.client.endpoints
 
+import com.intellij.execution.Executor
+import com.intellij.execution.configurations.RunProfile
+import com.intellij.execution.configurations.RunProfileState
+import com.intellij.execution.executors.DefaultRunExecutor
+import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
+import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
+import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.microservices.endpoints.*
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.actionSystem.*
@@ -14,7 +22,26 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
 import com.intellij.util.application
 import dev.thymian.client.cli.*
+import dev.thymian.client.run.ThymianRunProxy
+import dev.thymian.client.run.ThymianRunSettings
 import java.util.concurrent.CompletableFuture
+
+/**
+ * Builds a real [SMTestRunnerResultsForm], the same way production code does
+ * (`ThymianRunState.execute`), so tests exercising `ThymianRunProxy` directly can supply the
+ * results-viewer notifications it now requires to keep the Run tool window's tree in sync.
+ */
+private fun createTestResultsViewer(project: Project, disposable: com.intellij.openapi.Disposable): SMTestRunnerResultsForm {
+    val runProfile = object : RunProfile {
+        override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState? = null
+        override fun getName(): String = "ThymianTest"
+        override fun getIcon() = null
+    }
+    val properties = SMTRunnerConsoleProperties(project, runProfile, "ThymianTest", DefaultRunExecutor.getRunExecutorInstance())
+    val console = SMTestRunnerConnectionUtil.createConsole(properties)
+    com.intellij.openapi.util.Disposer.register(disposable, console)
+    return console.resultsViewer
+}
 
 class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
     private lateinit var testCli: TestThymianCLI
@@ -85,6 +112,71 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
                 (it as EmitActionMessage.CoreWorkflowLint).payload.specification.single().location
             )
         }
+    }
+
+    fun `test lint results are grouped into one locationProxy per resolved endpoint`() {
+        val report = Report(
+            reportId = "test-report",
+            createdAt = "1970-01-01T00:00:00.000Z",
+            runs = listOf(
+                ToolRun(
+                    runId = "run-1",
+                    runType = "lint",
+                    runAt = "1970-01-01T00:00:00.000Z",
+                    thymianFormatVersion = "v1",
+                    rules = listOf(RuleDescriptor(id = "rfc9110/request-host-header", severity = "warn")),
+                    executions = listOf(
+                        Execution(
+                            kind = "lint",
+                            ruleId = "rfc9110/request-host-header",
+                            status = ExecutionStatus(kind = "failed", reason = "Missing Host header"),
+                            location = Location.ThymianFormatLocation(elementType = "node", elementId = "req-1", pointer = ""),
+                        ),
+                        Execution(
+                            kind = "lint",
+                            status = ExecutionStatus(kind = "passed"),
+                            location = Location.CustomLocation(value = "GET /pets"),
+                        ),
+                    ),
+                ),
+            ),
+            thymianFormat = mapOf(
+                "v1" to SerializedThymianFormat(
+                    nodes = listOf(
+                        SerializedNode(
+                            key = "req-1",
+                            attributes = GraphNodeAttributes(type = "http-request", method = "post", path = "/orders", mediaType = ""),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val cli = TestThymianCLI(report)
+        cli.initialize { }
+        val resultsViewer = createTestResultsViewer(project, testRootDisposable)
+        val sortedEndpoints = ThymianRunSettings.SortedEndpoints(testEndpoints.endpointsProvider, testEndpoints.items)
+        val proxy = ThymianRunProxy(project, sortedEndpoints, resultsViewer)
+
+        val future = proxy.runTest(cli)
+        while (!future.isDone) {
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+        }
+        future.get()
+
+        val fileProxy = proxy.smTestProxy.children.single()
+        assertEquals(2, fileProxy.children.size)
+
+        val byName = fileProxy.children.associateBy { it.name }
+        assertTrue(byName.keys.contains("POST /orders"))
+        assertTrue(byName.keys.contains("GET /pets"))
+        // Individual locationProxy nodes aren't themselves marked failed/passed; only the
+        // aggregate file/provider suite reflects a location's failure (asserted below).
+        assertTrue(byName.getValue("GET /pets").isPassed)
+
+        // Failure in one endpoint propagates up to the file suite and the provider suite.
+        assertTrue(fileProxy.isDefect)
+        assertTrue(proxy.smTestProxy.isDefect)
     }
 }
 
@@ -170,7 +262,13 @@ paths:
     }
 }
 
-private class TestThymianCLI : ThymianCLI {
+private class TestThymianCLI(
+    private val reportToReturn: Report = Report(
+        reportId = "test-report",
+        createdAt = "1970-01-01T00:00:00.000Z",
+        runs = emptyList()
+    )
+) : ThymianCLI {
     private val lock = Any()
     val completionFuture = CompletableFuture<List<EmitActionMessage>>()
     private val actions = mutableListOf<EmitActionMessage>()
@@ -207,11 +305,7 @@ private class TestThymianCLI : ThymianCLI {
                 ActionResultMessage.CoreWorkflowLintResponse(
                     correlationId = action.id,
                     name = "core.workflow.lint",
-                    payload = Report(
-                        reportId = "test-report",
-                        createdAt = "1970-01-01T00:00:00.000Z",
-                        runs = emptyList()
-                    )
+                    payload = reportToReturn
                 )
             )
         }
