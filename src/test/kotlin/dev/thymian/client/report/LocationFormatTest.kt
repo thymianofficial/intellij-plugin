@@ -124,4 +124,43 @@ class LocationFormatTest {
 
         assertEquals("GET /pets - application/json", resolve(location, "v1"))
     }
+
+    @Test
+    fun `renders a response with an unknown status code without a trailing space`() {
+        val unknownStatusResponse = SerializedNode(
+            key = "res-2",
+            attributes = GraphNodeAttributes(type = "http-response", statusCode = 418, mediaType = ""),
+        )
+        val report = reportWith("v1" to SerializedThymianFormat(nodes = listOf(unknownStatusResponse)))
+        val resolve = createLocationResolver(report)
+        val location = Location.ThymianFormatLocation(elementType = "node", elementId = "res-2", pointer = "")
+
+        assertEquals("418", resolve(location, "v1"))
+    }
+
+    @Test
+    fun `renders a response with a null status code without a leading space`() {
+        val noStatusResponse = SerializedNode(
+            key = "res-3",
+            attributes = GraphNodeAttributes(type = "http-response", statusCode = null, mediaType = ""),
+        )
+        val report = reportWith("v1" to SerializedThymianFormat(nodes = listOf(noStatusResponse)))
+        val resolve = createLocationResolver(report)
+        val location = Location.ThymianFormatLocation(elementType = "node", elementId = "res-3", pointer = "")
+
+        assertEquals("", resolve(location, "v1"))
+    }
+
+    @Test
+    fun `renders a request with empty method and path without a leading space`() {
+        val emptyRequest = SerializedNode(
+            key = "req-3",
+            attributes = GraphNodeAttributes(type = "http-request", method = "", path = "", mediaType = ""),
+        )
+        val report = reportWith("v1" to SerializedThymianFormat(nodes = listOf(emptyRequest)))
+        val resolve = createLocationResolver(report)
+        val location = Location.ThymianFormatLocation(elementType = "node", elementId = "req-3", pointer = "")
+
+        assertEquals("", resolve(location, "v1"))
+    }
 }
