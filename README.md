@@ -1,8 +1,8 @@
 # intellij-plugin
 
 ![Build](https://github.com/thymianofficial/intellij-plugin/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/33090-thymian)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/33090-thymian)
+[![Version](https://img.shields.io/jetbrains/plugin/v/33090-thymian.svg)](https://plugins.jetbrains.com/plugin/33090-thymian)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/33090-thymian.svg)](https://plugins.jetbrains.com/plugin/33090-thymian)
 
 ## Template ToDo list
 
