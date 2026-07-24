@@ -11,6 +11,7 @@ import kotlinx.coroutines.future.asCompletableFuture
 import java.io.File
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class ThymianCLILocalRunner(
     private val cli: ThymianCLI,
@@ -93,7 +94,7 @@ internal class ThymianCLILocalRunner(
                     throw IllegalStateException("Thymian CLI process terminated unexpectedly")
                 }
 
-                delay(100)
+                delay(100.milliseconds)
             }
         }
 

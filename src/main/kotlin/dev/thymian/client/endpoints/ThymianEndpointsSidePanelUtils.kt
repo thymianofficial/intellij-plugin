@@ -10,9 +10,9 @@ import dev.thymian.client.run.ThymianRunConfiguration
 import dev.thymian.client.run.ThymianRunConfigurationType
 import dev.thymian.client.run.ThymianRunSettings
 
-fun runEndpointCheck(project: Project, items: List<EndpointsElementItem<*, *>>) = ReadAction.run<Throwable> {
+fun runEndpointCheck(project: Project, items: List<EndpointsElementItem<*, *>>) = ReadAction.runBlocking<Throwable> {
     if (items.isEmpty()) {
-        return@run
+        return@runBlocking
     }
 
     val configurationType = ThymianRunConfigurationType()
