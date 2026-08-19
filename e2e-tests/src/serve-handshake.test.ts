@@ -38,7 +38,10 @@ describe('thymian serve websocket handshake (smoke)', () => {
         exitCode = await serve.shutdown();
       }
 
-      expect(exitCode).toBe(0);
+      expect(
+        exitCode,
+        `expected a clean exit after 'q'.\n\nCLI output:\n${serve.output()}`,
+      ).toBe(0);
     },
     180_000,
   );

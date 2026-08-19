@@ -51,9 +51,10 @@ Environment variables (all optional):
 
 | Variable | Effect |
 |----------|--------|
-| `THYMIAN_E2E_MODE` | `npx` (default), `global`, or `local` (not implemented) |
-| `THYMIAN_E2E_VERSION` | overrides the committed exact pin (`DEFAULT_THYMIAN_VERSION` in `e2e-tests/src/helpers.ts`) |
-| `THYMIAN_E2E_REGISTRY` | mapped to `npm_config_registry` in the spawned CLI's environment; unset ⇒ public npm |
+| `THYMIAN_E2E_MODE` | `npx` (default), `global` (bare `thymian` from PATH), or `local` (a built checkout via `THYMIAN_E2E_CLI`) |
+| `THYMIAN_E2E_VERSION` | overrides the committed exact pin (`DEFAULT_THYMIAN_VERSION` in `e2e-tests/src/helpers.ts`); `npx` mode only |
+| `THYMIAN_E2E_REGISTRY` | mapped to `npm_config_registry` in the spawned CLI's environment; unset ⇒ the harness adds no registry override (ambient npm config still applies) |
+| `THYMIAN_E2E_CLI` | required in `local` mode: path to a built thymian entry (e.g. `<thymian>/packages/thymian/bin/run.js`), run with the current node binary — how the cross-repo drift loop tests unreleased thymian source |
 
 **Pin policy:** the default version is an **exact** string (never a range) — lockstep
 versioning means one string covers all `@thymian/*`. Bumping the pin is a deliberate PR:

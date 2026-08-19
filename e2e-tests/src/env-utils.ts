@@ -23,7 +23,8 @@ export function getCleanEnv(): Record<string, string> {
   env['NODE_ENV'] = 'production';
 
   // 402.4's orchestrator points the spawned CLI at Verdaccio through this.
-  // Unset ⇒ no registry override (public npm).
+  // Unset ⇒ the harness adds no registry override; ambient npm config (an
+  // inherited npm_config_registry, .npmrc) still applies to the spawned CLI.
   const registry = process.env['THYMIAN_E2E_REGISTRY'];
   if (registry) {
     env['npm_config_registry'] = registry;
