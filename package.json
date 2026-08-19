@@ -1,0 +1,17 @@
+{
+  "name": "intellij-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "vitest run --config e2e-tests/vitest.config.ts",
+    "typecheck": "tsc --noEmit -p e2e-tests"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10",
+    "ws": "^8.21.0"
+  }
+}

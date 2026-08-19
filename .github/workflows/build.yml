@@ -207,12 +207,40 @@ jobs:
           name: pluginVerifier-result
           path: ${{ github.workspace }}/build/reports/pluginVerifier
 
+  # Run the thymian e2e smoke suite against the pinned published CLI.
+  # Independent of 'build' — it tests the websocket protocol contract of the
+  # published thymian CLI, not the plugin zip.
+  e2e:
+    name: Thymian e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+
+      # Check out the current repository
+      - name: Fetch Sources
+        uses: actions/checkout@v7
+
+      # Set up the Node environment for the e2e harness
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # Install the e2e harness dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Run the e2e smoke suite
+      - name: Run e2e tests
+        run: npm run e2e
+
   # Prepare a draft release for GitHub Releases page for the manual verification
   # If accepted and published, the release workflow would be triggered
   releaseDraft:
     name: Release draft
     if: github.event_name != 'pull_request'
-    needs: [ build, test, inspectCode, verify ]
+    needs: [ build, test, inspectCode, verify, e2e ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
