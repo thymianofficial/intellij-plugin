@@ -231,6 +231,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Enforce the strict tsconfig the vendored protocol snapshot depends on
+      # (vitest transpiles without typechecking)
+      - name: Typecheck
+        run: npm run typecheck
+
       # Run the e2e smoke suite
       - name: Run e2e tests
         run: npm run e2e

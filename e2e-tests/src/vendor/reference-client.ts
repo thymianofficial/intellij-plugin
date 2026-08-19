@@ -19,6 +19,10 @@
  * - Behavioral addition: the full `RegisterAckMessage` is captured on the
  *   instance as `registerAck` — upstream `init()` resolves even on
  *   `ok: false`, which the smoke test must be able to detect.
+ * - Behavioral addition: `init()` rejects on a socket `'error'` or a
+ *   pre-ack `'close'` — upstream hangs forever when the server closes the
+ *   socket before acking (e.g. 1008 on schema violations, exactly the
+ *   protocol-drift failure this snapshot exists to catch).
  */
 import { WebSocket } from 'ws';
 
@@ -116,10 +120,25 @@ export class ReferenceClient {
   }
 
   init(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.socket = new WebSocket(`ws://127.0.0.1:${this.port}`);
 
-      this.socket.on('error', console.error);
+      this.socket.on('error', (error) => {
+        console.error(error);
+        if (!this.registerAck) {
+          reject(error);
+        }
+      });
+
+      this.socket.on('close', (code, reason) => {
+        if (!this.registerAck) {
+          reject(
+            new Error(
+              `Socket closed before register-ack (code ${code}${reason.length > 0 ? `, reason: ${reason.toString()}` : ''})`,
+            ),
+          );
+        }
+      });
 
       this.socket.on('open', () => {
         this.socket.send(
