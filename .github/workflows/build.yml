@@ -207,38 +207,74 @@ jobs:
           name: pluginVerifier-result
           path: ${{ github.workspace }}/build/reports/pluginVerifier
 
-  # Run the thymian e2e smoke suite against the pinned published CLI.
-  # Independent of 'build' — it tests the websocket protocol contract of the
-  # published thymian CLI, not the plugin zip.
+  # Run the real-CLI e2e test against a fresh thymian@main build.
+  # Independent of 'build' — it validates the plugin's CLI protocol client against the
+  # producer, not the plugin zip. A red e2e means drift between this repo's protocol
+  # client and thymian@main.
   e2e:
     name: Thymian e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
+
+      # Free GitHub Actions Environment Disk Space
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
 
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v7
 
-      # Set up the Node environment for the e2e harness
+      # Check out the thymian producer at main
+      - name: Fetch thymian
+        uses: actions/checkout@v7
+        with:
+          repository: thymianofficial/thymian
+          ref: main
+          path: thymian
+
+      # Set up the Java environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@v5.7.0
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          cache-read-only: true
+
+      # Set up the Node environment for the thymian build
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: thymian/package-lock.json
 
-      # Install the e2e harness dependencies
-      - name: Install dependencies
-        run: npm ci
+      # Build the thymian CLI (the CLI-sufficient build — thymian's own preVersionCommand)
+      - name: Build thymian
+        working-directory: thymian
+        run: |
+          npm ci
+          npx nx run-many -t build --exclude astro --no-tui
 
-      # Enforce the strict tsconfig the vendored protocol snapshot depends on
-      # (vitest transpiles without typechecking)
-      - name: Typecheck
-        run: npm run typecheck
+      # Run the real-CLI e2e test against the fresh thymian build
+      - name: Run e2e test
+        run: ./gradlew e2eTest -PthymianCliPath=$GITHUB_WORKSPACE/thymian/packages/thymian/bin/dev.js
 
-      # Run the e2e smoke suite
-      - name: Run e2e tests
-        run: npm run e2e
+      # Collect Tests Result of failed tests
+      - name: Collect Tests Result
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-tests-result
+          path: ${{ github.workspace }}/build/reports/tests
 
   # Prepare a draft release for GitHub Releases page for the manual verification
   # If accepted and published, the release workflow would be triggered

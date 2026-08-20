@@ -60,6 +60,17 @@ configurations.all {
     exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-core")
 }
 
+// Real-CLI e2e tests live in their own source set (src/e2eTest/kotlin), excluded from `check`.
+// Classpaths are wired off the `test` source set — the attribute-safe route to the extracted
+// platform and test framework dependencies.
+val e2eTest: SourceSet = sourceSets.create("e2eTest") {
+    compileClasspath += sourceSets.test.get().compileClasspath
+    runtimeClasspath += sourceSets.test.get().runtimeClasspath
+}
+
+// The e2e drives `internal` production API (ThymianSettings, ThymianCLISessionManager).
+kotlin.target.compilations.getByName("e2eTest").associateWith(kotlin.target.compilations.getByName("main"))
+
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
     pluginConfiguration {
@@ -127,6 +138,17 @@ changelog {
 
 // Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
 kover {
+    currentProject {
+        instrumentation {
+            // `check` → koverXmlReport (onCheck below) runs every instrumented Test task;
+            // keep the real-CLI e2e out of that chain — it needs -PthymianCliPath and a built CLI.
+            disabledForTestTasks.add("e2eTest")
+        }
+        sources {
+            // Keep e2e test code out of the coverage report (and out of `check`'s compile graph).
+            excludedSourceSets.add("e2eTest")
+        }
+    }
     reports {
         total {
             xml {
@@ -162,6 +184,35 @@ intellijPlatformTesting {
 
             plugins {
                 robotServerPlugin()
+            }
+        }
+    }
+
+    testIde {
+        register("e2eTest") {
+            // The base `intellijPlatform { testFramework(...) }` does not propagate to custom
+            // test tasks (removed upstream, IJPGP #2022) — it must be declared per task.
+            dependencies {
+                testFramework(TestFrameworkType.Platform)
+            }
+
+            task {
+                testClassesDirs = e2eTest.output.classesDirs
+                // `+=` only: plain assignment clobbers the plugin's sandbox-first classpath.
+                classpath += e2eTest.runtimeClasspath
+
+                val thymianCliPath = providers.gradleProperty("thymianCliPath")
+                    .orElse(providers.environmentVariable("THYMIAN_CLI_PATH"))
+                jvmArgumentProviders += CommandLineArgumentProvider {
+                    // Resolved when the task runs, so a missing path fails fast before the
+                    // test JVM forks — and never falls back to npx or a published version.
+                    val cliPath = thymianCliPath.orNull ?: error(
+                        "e2eTest needs the path to a built thymian CLI entry point: " +
+                            "./gradlew e2eTest -PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js " +
+                            "(or set THYMIAN_CLI_PATH)",
+                    )
+                    listOf("-DthymianCliPath=$cliPath")
+                }
             }
         }
     }

@@ -13,8 +13,3 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-  # Maintain dependencies for the thymian e2e harness (root package.json)
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "daily"
