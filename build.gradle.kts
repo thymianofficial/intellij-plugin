@@ -204,9 +204,10 @@ intellijPlatformTesting {
                 val thymianCliPath = providers.gradleProperty("thymianCliPath")
                     .orElse(providers.environmentVariable("THYMIAN_CLI_PATH"))
                 jvmArgumentProviders += CommandLineArgumentProvider {
-                    // Resolved when the task runs, so a missing path fails fast before the
-                    // test JVM forks — and never falls back to npx or a published version.
-                    val cliPath = thymianCliPath.orNull ?: error(
+                    // Resolved when the task runs, so a missing or blank path fails fast
+                    // before the test JVM forks — and never falls back to npx or a
+                    // published version.
+                    val cliPath = thymianCliPath.orNull?.takeIf { it.isNotBlank() } ?: error(
                         "e2eTest needs the path to a built thymian CLI entry point: " +
                             "./gradlew e2eTest -PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js " +
                             "(or set THYMIAN_CLI_PATH)",

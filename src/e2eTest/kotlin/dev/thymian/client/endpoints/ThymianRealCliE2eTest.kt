@@ -32,6 +32,7 @@ import dev.thymian.client.settings.ThymianSettings
 import java.io.File
 import java.net.ServerSocket
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 /**
  * Real-CLI end-to-end test: drives the plugin's production CLI stack
@@ -53,6 +54,7 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
     private var settings: ThymianSettings? = null
     private var originalCliPath: String = ""
     private var originalPort: Int = ThymianSettings.DEFAULT_WEBSOCKET_PORT
+    private var allocatedPort: Int = 0
 
     override fun setUp() {
         super.setUp()
@@ -65,7 +67,15 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
                     "(or set THYMIAN_CLI_PATH); the Gradle task forwards it."
             )
         }
+        // The checks mirror what the production runner needs: it splits the path at the first
+        // RUN_FILE_OPTIONS match into working directory + relative command and spawns the
+        // entry directly via its shebang — so the path must be absolute (setUp's cwd and the
+        // spawn directory differ), executable, and carry a known entry suffix, or the spawn
+        // fails later with an opaque IOException instead of this message.
         val cliFile = File(cliPath!!)
+        if (!cliFile.isAbsolute) {
+            fail("'thymianCliPath' must be an absolute path, got: $cliPath")
+        }
         if (!cliFile.isFile || !cliFile.canRead()) {
             fail(
                 "'thymianCliPath' does not point to a readable file: $cliPath. " +
@@ -73,18 +83,19 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
                     "-PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js"
             )
         }
-
-        // The application-level settings service is the production control surface for the
-        // session manager (runner + adapter read its State by reference) — and it outlives
-        // the test, so the original values are restored in tearDown.
-        val settings = ThymianSettings.getInstance()
-        this.settings = settings
-        originalCliPath = settings.thymianCliPath
-        originalPort = settings.websocketPort
-        settings.thymianCliPath = cliPath
-        // The 51234 default would collide with any thymian instance already running on this
-        // machine; a freshly bound-and-closed port keeps the e2e isolated.
-        settings.websocketPort = ServerSocket(0).use { it.localPort }
+        if (!cliFile.canExecute()) {
+            fail(
+                "'thymianCliPath' is not executable: $cliPath. The production runner spawns " +
+                    "it directly (shebang) — restore the exec bit (chmod +x)."
+            )
+        }
+        if (ThymianSettings.RUN_FILE_OPTIONS.none { cliPath.contains(it) }) {
+            fail(
+                "'thymianCliPath' contains none of ${ThymianSettings.RUN_FILE_OPTIONS} — the " +
+                    "production runner splits the path at that entry; point it at " +
+                    "<thymian checkout>/packages/thymian/bin/dev.js"
+            )
+        }
 
         testEndpoints = FakeApiDefinitionEndpoints(project)
         ExtensionTestUtil.maskExtensions(
@@ -92,6 +103,20 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
             listOf(testEndpoints.endpointsProvider),
             testRootDisposable
         )
+
+        // Settings are mutated LAST — nothing below can throw, so a failed setUp never leaks
+        // a mutated application-level service (JUnit 3 skips tearDown when setUp throws).
+        // The service is the production control surface: runner + adapter read its State by
+        // reference, and it outlives the test, so tearDown restores the captured originals.
+        val settings = ThymianSettings.getInstance()
+        this.settings = settings
+        originalCliPath = settings.thymianCliPath
+        originalPort = settings.websocketPort
+        settings.thymianCliPath = cliPath
+        // The 51234 default would collide with any thymian instance already running on this
+        // machine; a freshly bound-and-closed port keeps the e2e isolated.
+        allocatedPort = ServerSocket(0).use { it.localPort }
+        settings.websocketPort = allocatedPort
     }
 
     override fun tearDown() {
@@ -100,6 +125,7 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
                 it.thymianCliPath = originalCliPath
                 it.websocketPort = originalPort
             }
+            killLeftoverCliProcess()
             val editorFactory = EditorFactory.getInstance()
             editorFactory.allEditors.forEach { editor ->
                 if (!editor.isDisposed) {
@@ -130,23 +156,34 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
         }
 
         // ThymianRunProxy posts results via invokeLater — without pumping the EDT the
-        // futures never complete. Budget: 30s spawn banner + 4s handshake + 60s action
-        // timeout, all well inside the deadline.
+        // futures never complete. Known bounds: 30s spawn banner (client-enforced), 4s
+        // handshake window (server-enforced), 60s action timeout (server-honored). The
+        // adapter itself waits unbounded, so this deadline is the only client-side backstop.
         val settled = pumpUntil(DEADLINE_MILLIS) { closeFuture.isDone }
-        assertTrue(
-            "CLI session (spawn → register → lint → close) did not settle within ${DEADLINE_MILLIS / 1000}s",
-            settled
-        )
+        if (!settled) {
+            // A hung chain is the likeliest failure shape (see above) — close best-effort
+            // and hard-kill any surviving CLI child before failing, or the real `serve`
+            // process outlives the test.
+            val cli = if (cliFuture.isDone && !cliFuture.isCompletedExceptionally) cliFuture.getNow(null) else null
+            val lateClose = cli?.let { runCatching(it::close).getOrNull() }
+            if (lateClose != null) {
+                pumpUntil(LATE_CLOSE_GRACE_MILLIS) { lateClose.isDone }
+            }
+            killLeftoverCliProcess()
+            fail("CLI session (spawn → register → lint → close) did not settle within ${DEADLINE_MILLIS / 1000}s")
+        }
 
         if (roundTrip.isCompletedExceptionally) {
             val error = runCatching { roundTrip.join() }.exceptionOrNull()
-            fail("lint round-trip completed exceptionally: $error")
+            // The adapter stack IS the drift diagnosis — keep it attached, not toString()ed.
+            throw AssertionError("lint round-trip completed exceptionally: $error", error)
         }
         assertFalse("cli.close() completed exceptionally", closeFuture.isCompletedExceptionally)
 
         // A real Report arrived and was grouped: at least one location child under the
         // test-set (file) proxy. Rule failures (isDefect) are acceptable — CI runs against
         // thymian@main; an adapter/action error message is not.
+        assertEquals("expected exactly one file suite under the provider proxy", 1, proxy.smTestProxy.children.size)
         val fileProxy = proxy.smTestProxy.children.single()
         assertNull("adapter/action error surfaced: ${fileProxy.errorMessage}", fileProxy.errorMessage)
         assertTrue(
@@ -173,8 +210,27 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
         return true
     }
 
+    /**
+     * Kills any CLI process this test spawned that is still alive — identified among the test
+     * JVM's descendants by the unique per-run port in its command line. Belt-and-braces for the
+     * hung-chain path; a no-op when the session closed normally (or nothing was spawned).
+     */
+    private fun killLeftoverCliProcess() {
+        if (allocatedPort == 0) {
+            return
+        }
+        val marker = "@thymian/plugin-websocket-proxy.port=$allocatedPort"
+        ProcessHandle.current().descendants()
+            .filter { handle -> handle.info().commandLine().map { it.contains(marker) }.orElse(false) }
+            .forEach { handle ->
+                handle.destroy()
+                runCatching { handle.onExit().get(5, TimeUnit.SECONDS) }.onFailure { handle.destroyForcibly() }
+            }
+    }
+
     companion object {
         private const val DEADLINE_MILLIS = 180_000L
+        private const val LATE_CLOSE_GRACE_MILLIS = 30_000L
     }
 }
 
