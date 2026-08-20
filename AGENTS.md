@@ -11,7 +11,7 @@ The production runner (`src/main/kotlin/dev/thymian/client/cli/ThymianCLILocalRu
 spawns `npx --yes thymian@latest serve …` — or, when `ThymianSettings.thymianCliPath` is
 configured, the configured CLI entry directly
 (`<entry> serve --rule-severity=hint -o @thymian/plugin-websocket-proxy.port=<port>`; the
-path is split on a `ThymianSettings.RUN_FILE_OPTIONS` suffix into working directory +
+path is split at the first `ThymianSettings.RUN_FILE_OPTIONS` match into working directory +
 relative command) — waits for the serve banner, and quits the CLI by writing `q` to its
 stdin. The Kotlin protocol mirror is `cli/Message.kt`; the handshake
 (register → register-ack → ready) is implemented in `cli/ThymianCLIAdapter.kt`.
@@ -60,8 +60,9 @@ Invocation (the CLI path is required; there is no npx fallback):
 ```
 
 `THYMIAN_CLI_PATH` (environment) works as an alternative to `-PthymianCliPath`. A missing
-or invalid path fails fast — the Gradle task errors before the test JVM forks, and the test
-re-validates the file in `setUp`.
+or blank path fails fast at the Gradle level, before the test JVM forks; an invalid path
+(not an absolute, readable, executable `RUN_FILE_OPTIONS` entry) fails fast in the test's
+`setUp`, before any spawn attempt.
 
 Local setup: build the sibling `thymian/` checkout first (`npm ci`, then
 `npx nx run-many -t build --exclude astro --no-tui` — thymian's own CLI-sufficient build).
@@ -70,8 +71,8 @@ Local setup: build the sibling `thymian/` checkout first (`npm ci`, then
 
 **What a red e2e means:** the plugin's protocol client and thymian@main have drifted —
 assertions target the mechanism (session settles, a real `Report` arrives and is grouped, no
-adapter/action error, clean CLI shutdown), not rule outcomes, so rule-result changes on
-thymian@main do not break it. Treat a red run as a real cross-repo finding (versioning
+adapter/action error, the production quit path completes within its timeout), not rule
+outcomes, so rule-result changes on thymian@main do not break it. Treat a red run as a real cross-repo finding (versioning
 policy: `thymian-internal#649`), not as a flake to retry. The cross-repo e2e loop in
 `thymianofficial/thymian-internal` (story 402.4) drives this Gradle target.
 
