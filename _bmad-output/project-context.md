@@ -70,7 +70,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Issue Tracking
 
-- Tickets are managed in the internal repo **`thymianofficial/thymian-internal`** (<https://github.com/thymianofficial/thymian-internal>), **not** in this plugin's public repo. Open issues there and reference them from commits/PRs.
+- Tickets are managed in a private internal planning repo, **not** in this plugin's public repo.
 
 ---
 

@@ -72,11 +72,10 @@ Local setup: build the sibling `thymian/` checkout first (`npm ci`, then
 **What a red e2e means:** the plugin's protocol client and thymian@main have drifted —
 assertions target the mechanism (session settles, a real `Report` arrives and is grouped, no
 adapter/action error, the production quit path completes within its timeout), not rule
-outcomes, so rule-result changes on thymian@main do not break it. Treat a red run as a real cross-repo finding (versioning
-policy: `thymian-internal#649`), not as a flake to retry. The cross-repo e2e loop in
-`thymianofficial/thymian-internal` (story 402.4) drives this Gradle target.
+outcomes, so rule-result changes on thymian@main do not break it. Treat a red run as a real
+cross-repo finding, not as a flake to retry.
 
 ## Process
 
-Feature planning and the BMAD story workflow live in `thymianofficial/thymian-internal`;
-stories targeting this repo carry the `repo:intellij-plugin` label there.
+Feature planning and the story workflow live in a private planning repo, not in this
+repo's issue tracker.
