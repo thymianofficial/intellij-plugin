@@ -137,6 +137,7 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
         }
     }
 
+    @Suppress("FunctionName") // backtick test names are this repo's convention
     fun `test one real lint round-trip through the production CLI stack`() {
         val resultsViewer = createTestResultsViewer(project, testRootDisposable)
         val sortedEndpoints = ThymianRunSettings.SortedEndpoints(testEndpoints.endpointsProvider, testEndpoints.items)
@@ -165,8 +166,7 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
             // and hard-kill any surviving CLI child before failing, or the real `serve`
             // process outlives the test.
             val cli = if (cliFuture.isDone && !cliFuture.isCompletedExceptionally) cliFuture.getNow(null) else null
-            val lateClose = cli?.let { runCatching(it::close).getOrNull() }
-            if (lateClose != null) {
+            cli?.let { runCatching(it::close).getOrNull() }?.let { lateClose ->
                 pumpUntil(LATE_CLOSE_GRACE_MILLIS) { lateClose.isDone }
             }
             killLeftoverCliProcess()
@@ -287,6 +287,9 @@ paths:
         override val presentation = FrameworkPresentation("ThymianE2eTest", "E2e Endpoints Provider", null)
         override val endpointType = API_DEFINITION_TYPE
 
+        // The platform passes other EndpointsFilter implementations at runtime, even though
+        // only ModuleEndpointsFilter is visible to static analysis here.
+        @Suppress("KotlinConstantConditions")
         override fun getEndpointGroups(project: Project, filter: EndpointsFilter) =
             if (filter is ModuleEndpointsFilter) {
                 emptyList()
