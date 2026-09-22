@@ -1,6 +1,5 @@
 package dev.thymian.client.cli
 
-import com.intellij.collaboration.async.cancelAndJoinSilently
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
