@@ -8,14 +8,10 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.testframework.sm.runner.SMTRunnerConsoleProperties
 import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
-import com.intellij.microservices.endpoints.API_DEFINITION_TYPE
-import com.intellij.microservices.endpoints.EndpointsElementItem
-import com.intellij.microservices.endpoints.EndpointsFilter
-import com.intellij.microservices.endpoints.EndpointsProvider
-import com.intellij.microservices.endpoints.FrameworkPresentation
-import com.intellij.microservices.endpoints.ModuleEndpointsFilter
+import com.intellij.microservices.endpoints.*
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.AccessToken
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -23,6 +19,7 @@ import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.testFramework.ExtensionTestUtil
+import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.thymian.client.cli.ThymianCLISessionManager
@@ -55,16 +52,18 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
     private var originalCliPath: String = ""
     private var originalPort: Int = ThymianSettings.DEFAULT_WEBSOCKET_PORT
     private var allocatedPort: Int = 0
+    private var startupErrorSuppression: AccessToken? = null
 
     override fun setUp() {
+        startupErrorSuppression = suppressUltimateStartupActivityError()
         super.setUp()
 
         val cliPath = System.getProperty("thymianCliPath")
         if (cliPath.isNullOrBlank()) {
             fail(
                 "Missing system property 'thymianCliPath'. Run via " +
-                    "./gradlew e2eTest -PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js " +
-                    "(or set THYMIAN_CLI_PATH); the Gradle task forwards it."
+                        "./gradlew e2eTest -PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js " +
+                        "(or set THYMIAN_CLI_PATH); the Gradle task forwards it."
             )
         }
         // The checks mirror what the production runner needs: it splits the path at the first
@@ -79,21 +78,21 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
         if (!cliFile.isFile || !cliFile.canRead()) {
             fail(
                 "'thymianCliPath' does not point to a readable file: $cliPath. " +
-                    "Pass the CLI entry point of a built thymian checkout, e.g. " +
-                    "-PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js"
+                        "Pass the CLI entry point of a built thymian checkout, e.g. " +
+                        "-PthymianCliPath=<thymian checkout>/packages/thymian/bin/dev.js"
             )
         }
         if (!cliFile.canExecute()) {
             fail(
                 "'thymianCliPath' is not executable: $cliPath. The production runner spawns " +
-                    "it directly (shebang) — restore the exec bit (chmod +x)."
+                        "it directly (shebang) — restore the exec bit (chmod +x)."
             )
         }
         if (ThymianSettings.RUN_FILE_OPTIONS.none { cliPath.contains(it) }) {
             fail(
                 "'thymianCliPath' contains none of ${ThymianSettings.RUN_FILE_OPTIONS} — the " +
-                    "production runner splits the path at that entry; point it at " +
-                    "<thymian checkout>/packages/thymian/bin/dev.js"
+                        "production runner splits the path at that entry; point it at " +
+                        "<thymian checkout>/packages/thymian/bin/dev.js"
             )
         }
 
@@ -133,7 +132,12 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
                 }
             }
         } finally {
-            super.tearDown()
+            try {
+                super.tearDown()
+            } finally {
+                startupErrorSuppression?.finish()
+                startupErrorSuppression = null
+            }
         }
     }
 
@@ -235,6 +239,32 @@ class ThymianRealCliE2eTest : BasePlatformTestCase() {
 }
 
 /**
+ * IU 2026.2.3 ships two unrelated obfuscated classes that collide on `Z.Z.Z.Z.Z`: the
+ * `postStartupActivity` of `plugins/ultimate-plugin` and an interface in `lib/product-backend.jar`.
+ * The IDE keeps them apart with per-plugin classloaders; a platform test flattens the whole IDE
+ * onto one `PathClassLoader`, so the interface wins and cannot be instantiated. The platform
+ * tolerates it (`createOrError` logs and returns null) — only `TestLoggerFactory` turns the
+ * `LOG.error` into a test failure. The obfuscator re-rolls these names every build, so suppress
+ * the one message rather than pinning a platform version. Copied from
+ * `ThymianEndpointsRunCheckIntegrationTest` — file-private helpers can't cross source sets.
+ */
+private fun suppressUltimateStartupActivityError(): AccessToken =
+    LoggedErrorProcessor.executeWith(object : LoggedErrorProcessor() {
+        override fun processError(
+            category: String,
+            message: String,
+            details: Array<String>,
+            t: Throwable?,
+        ): Set<Action> = if (
+            "Cannot create extension" in message && "[Plugin: com.intellij.modules.ultimate]" in message
+        ) {
+            setOf(Action.LOG) // keep it in the test log, but do not fail the test
+        } else {
+            super.processError(category, message, details, t)
+        }
+    })
+
+/**
  * Builds a real [SMTestRunnerResultsForm] the way production code does (`ThymianRunState.execute`),
  * so the proxy can post the results-viewer notifications it requires. Copied from
  * `ThymianEndpointsRunCheckIntegrationTest` — file-private helpers can't cross source sets.
@@ -245,7 +275,8 @@ private fun createTestResultsViewer(project: Project, disposable: Disposable): S
         override fun getName(): String = "ThymianE2eTest"
         override fun getIcon() = null
     }
-    val properties = SMTRunnerConsoleProperties(project, runProfile, "ThymianE2eTest", DefaultRunExecutor.getRunExecutorInstance())
+    val properties =
+        SMTRunnerConsoleProperties(project, runProfile, "ThymianE2eTest", DefaultRunExecutor.getRunExecutorInstance())
     val console = SMTestRunnerConnectionUtil.createConsole(properties)
     Disposer.register(disposable, console)
     return console.resultsViewer
