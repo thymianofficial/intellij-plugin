@@ -11,12 +11,14 @@ import com.intellij.execution.testframework.sm.runner.ui.SMTestRunnerResultsForm
 import com.intellij.microservices.endpoints.*
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.AccessToken
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.testFramework.ExtensionTestUtil
+import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.testFramework.replaceService
@@ -43,11 +45,38 @@ private fun createTestResultsViewer(project: Project, disposable: com.intellij.o
     return console.resultsViewer
 }
 
+/**
+ * IU 2026.2.3 ships two unrelated obfuscated classes that collide on `Z.Z.Z.Z.Z`: the
+ * `postStartupActivity` of `plugins/ultimate-plugin` and an interface in `lib/product-backend.jar`.
+ * The IDE keeps them apart with per-plugin classloaders; a platform test flattens the whole IDE
+ * onto one `PathClassLoader`, so the interface wins and cannot be instantiated. The platform
+ * tolerates it (`createOrError` logs and returns null) — only `TestLoggerFactory` turns the
+ * `LOG.error` into a test failure. The obfuscator re-rolls these names every build, so suppress
+ * the one message rather than pinning a platform version.
+ */
+private fun suppressUltimateStartupActivityError(): AccessToken =
+    LoggedErrorProcessor.executeWith(object : LoggedErrorProcessor() {
+        override fun processError(
+            category: String,
+            message: String,
+            details: Array<String>,
+            t: Throwable?,
+        ): Set<Action> = if (
+            "Cannot create extension" in message && "[Plugin: com.intellij.modules.ultimate]" in message
+        ) {
+            setOf(Action.LOG) // keep it in the test log, but do not fail the test
+        } else {
+            super.processError(category, message, details, t)
+        }
+    })
+
 class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
     private lateinit var testCli: TestThymianCLI
     private lateinit var testEndpoints: FakeApiDefinitionEndpoints
+    private var startupErrorSuppression: AccessToken? = null
 
     override fun setUp() {
+        startupErrorSuppression = suppressUltimateStartupActivityError()
         super.setUp()
         testCli = TestThymianCLI()
         testEndpoints = FakeApiDefinitionEndpoints(project)
@@ -78,7 +107,12 @@ class ThymianEndpointsRunCheckIntegrationTest : BasePlatformTestCase() {
                 }
             }
         } finally {
-            super.tearDown()
+            try {
+                super.tearDown()
+            } finally {
+                startupErrorSuppression?.finish()
+                startupErrorSuppression = null
+            }
         }
     }
 
