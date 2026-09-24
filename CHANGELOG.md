@@ -6,10 +6,10 @@
 
 ### Fixed
 
-- Plugin failing `verifyPlugin` / breaking at runtime on 2026.3 (build 263): replaced the
+- Plugin failing `verifyPlugin` / breaking at runtime in 2026.3 (build 263): replaced the
   removed experimental `com.intellij.collaboration.async.cancelAndJoinSilently` platform API
   with a local helper.
-- Refactored ThymianBundle to current suggestion in IntelliJ docs, because the last implementation failed
+- Refactored ThymianBundle to the current suggestion in IntelliJ docs because the last implementation failed
   `verifyPlugin`.
 
 ## [0.0.1]
