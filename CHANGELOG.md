@@ -6,11 +6,8 @@
 
 ### Fixed
 
-- Plugin failing `verifyPlugin` / breaking at runtime in 2026.3 (build 263): replaced the
-  removed experimental `com.intellij.collaboration.async.cancelAndJoinSilently` platform API
-  with a local helper.
-- Refactored ThymianBundle to the current suggestion in IntelliJ docs because the last implementation failed
-  `verifyPlugin`.
+- Compatibility with IntelliJ IDEA 2026.3 (build 263): the plugin no longer relies on a platform API
+  that was removed there.
 
 ## [0.0.1]
 

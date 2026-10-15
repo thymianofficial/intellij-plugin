@@ -11,6 +11,7 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
@@ -131,7 +132,7 @@ internal class ThymianCLIAdapter(private val settings: ThymianSettings.State, pr
     }
 
     override fun close() = cs.launch {
-        listenJob?.cancelAndJoinSilently()
+        listenJob?.cancelAndJoin()
         websocketSession?.close(CloseReason(CloseReason.Codes.NORMAL, "Normal close"))
         websocketSession = null
         client?.close()

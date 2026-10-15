@@ -123,7 +123,7 @@ internal class ThymianCLILocalRunner(
 
     private fun stopCliProcess() = cs.launch {
         withContext(Dispatchers.IO) {
-            listenJob?.cancelAndJoinSilently()
+            listenJob?.cancelAndJoin()
             if (!cliProcess.isAlive) {
                 return@withContext
             }
