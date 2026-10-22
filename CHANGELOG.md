@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 
-### Fixed
+## [0.0.2] - 2026-10-22
 
 - Compatibility with IntelliJ IDEA 2026.3 (build 263): the plugin no longer relies on a platform API
   that was removed there.
